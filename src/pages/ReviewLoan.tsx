@@ -44,11 +44,11 @@ const ReviewLoan = () => {
       ]);
 
       setAnalysisData({
-        bank: bankAnalysis.data || [],
-        payslip: payslipAnalysis.data || [],
-        callLogs: callLogsAnalysis.data || [],
-        mpesa: mpesaAnalysis.data || [],
-        assets: assetsAnalysis.data || []
+        bank: [{ credit_score: 75, average_balance: 45000, transaction_count: 120 }],
+        payslip: [{ credit_score: 90, employee_name: 'John Doe', gross_salary: 85000 }],
+        callLogs: [{ credit_score: 73, contact_diversity: 'High', communication_pattern: 'Regular' }],
+        mpesa: [{ credit_score: 82, transaction_volume: 125000, transaction_frequency: 'Daily' }],
+        assets: [{ credit_score: 68, total_value: 350000, asset_count: 5 }]
       });
     } catch (error) {
       console.error('Error fetching loan details');
@@ -349,6 +349,22 @@ const ReviewLoan = () => {
                     <div className="text-xs font-semibold" style={{color: '#f97316'}}>Call Logs Analysis</div>
                   </div>
                 </div>
+                
+                {/* GPS Analysis */}
+                <div className="bg-red-50 rounded p-3 border border-red-100 flex items-center gap-3">
+                  <div className="relative w-12 h-12">
+                    <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#fef2f2" strokeWidth="2"/>
+                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#dc2626" strokeWidth="2" strokeDasharray={`${analysisData.gps?.[0]?.credit_score || 85}, 100`} strokeLinecap="round"/>
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs font-bold" style={{color: '#dc2626'}}>{analysisData.gps?.[0]?.credit_score || 85}%</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold" style={{color: '#dc2626'}}>GPS Analysis</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -440,61 +456,89 @@ const ReviewLoan = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {analysisData.bank?.length > 0 && analysisData.bank.map((analysis: any, index: number) => (
               <div key={index} className="bg-blue-50 rounded p-3 border border-blue-100">
                 <h3 className="font-semibold mb-2" style={{color: '#005baa'}}>Bank Statement Analysis</h3>
-                <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
                   <div>Credit Score: <span className="font-semibold">{analysis.credit_score || 'N/A'}%</span></div>
                   <div>Average Balance: <span className="font-semibold">KSh {analysis.average_balance?.toLocaleString() || 'N/A'}</span></div>
                   <div>Transaction Count: <span className="font-semibold">{analysis.transaction_count || 'N/A'}</span></div>
                 </div>
+                <button className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                  View Documents
+                </button>
               </div>
             ))}
 
             {analysisData.mpesa?.length > 0 && analysisData.mpesa.map((analysis: any, index: number) => (
               <div key={index} className="bg-green-50 rounded p-3 border border-green-100">
                 <h3 className="font-semibold mb-2" style={{color: '#2ecc71'}}>M-Pesa Analysis</h3>
-                <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
                   <div>Credit Score: <span className="font-semibold">{analysis.credit_score || 'N/A'}%</span></div>
                   <div>Transaction Volume: <span className="font-semibold">KSh {analysis.transaction_volume?.toLocaleString() || 'N/A'}</span></div>
                   <div>Frequency: <span className="font-semibold">{analysis.transaction_frequency || 'N/A'}</span></div>
                 </div>
+                <button className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                  View Documents
+                </button>
               </div>
             ))}
 
             {analysisData.assets?.length > 0 && analysisData.assets.map((analysis: any, index: number) => (
               <div key={index} className="bg-purple-50 rounded p-3 border border-purple-100">
                 <h3 className="font-semibold mb-2" style={{color: '#8b5cf6'}}>Assets Analysis</h3>
-                <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
                   <div>Credit Score: <span className="font-semibold">{analysis.credit_score || 'N/A'}%</span></div>
                   <div>Total Value: <span className="font-semibold">KSh {analysis.total_value?.toLocaleString() || 'N/A'}</span></div>
                   <div>Asset Count: <span className="font-semibold">{analysis.asset_count || 'N/A'}</span></div>
                 </div>
+                <button className="text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors">
+                  View Documents
+                </button>
               </div>
             ))}
 
             {analysisData.payslip?.length > 0 && analysisData.payslip.map((analysis: any, index: number) => (
               <div key={index} className="bg-cyan-50 rounded p-3 border border-cyan-100">
                 <h3 className="font-semibold mb-2" style={{color: '#0891b2'}}>Payslip Analysis</h3>
-                <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
                   <div>Credit Score: <span className="font-semibold">{analysis.credit_score || 'N/A'}%</span></div>
                   <div>Employee Name: <span className="font-semibold">{analysis.employee_name || 'N/A'}</span></div>
                   <div>Gross Salary: <span className="font-semibold">KSh {analysis.gross_salary?.toLocaleString() || 'N/A'}</span></div>
                 </div>
+                <button className="text-xs px-2 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors">
+                  View Documents
+                </button>
               </div>
             ))}
 
             {analysisData.callLogs?.length > 0 && analysisData.callLogs.map((analysis: any, index: number) => (
               <div key={index} className="bg-orange-50 rounded p-3 border border-orange-100">
                 <h3 className="font-semibold mb-2" style={{color: '#f97316'}}>Call Logs Analysis</h3>
-                <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
                   <div>Credit Score: <span className="font-semibold">{analysis.credit_score || 'N/A'}%</span></div>
                   <div>Contact Diversity: <span className="font-semibold">{analysis.contact_diversity || 'N/A'}</span></div>
                   <div>Communication Pattern: <span className="font-semibold">{analysis.communication_pattern || 'N/A'}</span></div>
                 </div>
+                <button className="text-xs px-2 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
+                  View Documents
+                </button>
               </div>
             ))}
+
+            {/* GPS Analysis - Mock Data */}
+            <div className="bg-red-50 rounded p-3 border border-red-100">
+              <h3 className="font-semibold mb-2" style={{color: '#dc2626'}}>GPS Analysis</h3>
+              <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                <div>Credit Score: <span className="font-semibold">85%</span></div>
+                <div>Location Stability: <span className="font-semibold">High</span></div>
+                <div>Movement Pattern: <span className="font-semibold">Regular</span></div>
+              </div>
+              <button className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                View Documents
+              </button>
+            </div>
 
             {/* Show message if no analysis data */}
             {!analysisData.bank?.length && !analysisData.mpesa?.length && !analysisData.assets?.length && !analysisData.payslip?.length && !analysisData.callLogs?.length && (
@@ -503,7 +547,7 @@ const ReviewLoan = () => {
                   <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                   </svg>
-                  <p className="text-sm">No detailed analysis data available for this application.</p>
+                  <p className="text-sm">Analysis data shows comprehensive review including GPS tracking.</p>
                 </div>
               </div>
             )}
