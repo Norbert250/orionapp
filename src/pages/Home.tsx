@@ -24,12 +24,7 @@ const Home: React.FC = () => {
   const [showSectorModal, setShowSectorModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  // Redirect admin users to dashboard
-  useEffect(() => {
-    if (user && isAdmin) {
-      navigate('/dashboard');
-    }
-  }, [user, isAdmin, navigate]);
+  // Authentication disabled - no admin redirect needed
 
   const handleSectorSelect = (sector: 'formal' | 'informal') => {
     setShowSectorModal(false);

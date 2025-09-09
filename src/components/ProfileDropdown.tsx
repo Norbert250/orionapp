@@ -64,49 +64,42 @@ const ProfileDropdown = () => {
           </div>
 
           <div className="py-2">
-            {!isAdmin && (
-              <>
-                <button
-                  onClick={() => {
-                    navigate('/')
-                    setIsOpen(false)
-                  }}
-                  className="group w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center transition-all duration-200 rounded-lg mx-2"
-                >
-                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-100 group-hover:scale-110 transition-all">
-                    <Home className="w-4 h-4 text-gray-600 group-hover:text-blue-600" />
-                  </div>
-                  <span className="font-medium">Home</span>
-                </button>
-                <button
-                  onClick={() => {
-                    navigate('/loans')
-                    setIsOpen(false)
-                  }}
-                  className="group w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center transition-all duration-200 rounded-lg mx-2"
-                >
-                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-100 group-hover:scale-110 transition-all">
-                    <FileText className="w-4 h-4 text-gray-600 group-hover:text-blue-600" />
-                  </div>
-                  <span className="font-medium">My Loans</span>
-                </button>
-              </>
-            )}
-
-            {isAdmin && (
-              <button
-                onClick={() => {
-                  navigate('/dashboard')
-                  setIsOpen(false)
-                }}
-                className="group w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center transition-all duration-200 rounded-lg mx-2"
-              >
-                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-100 group-hover:scale-110 transition-all">
-                  <BarChart3 className="w-4 h-4 text-gray-600 group-hover:text-blue-600" />
-                </div>
-                <span className="font-medium">Admin Dashboard</span>
-              </button>
-            )}
+            <button
+              onClick={() => {
+                navigate('/')
+                setIsOpen(false)
+              }}
+              className="group w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center transition-all duration-200 rounded-lg mx-2"
+            >
+              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-100 group-hover:scale-110 transition-all">
+                <Home className="w-4 h-4 text-gray-600 group-hover:text-blue-600" />
+              </div>
+              <span className="font-medium">Home</span>
+            </button>
+            <button
+              onClick={() => {
+                navigate('/dashboard')
+                setIsOpen(false)
+              }}
+              className="group w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center transition-all duration-200 rounded-lg mx-2"
+            >
+              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-100 group-hover:scale-110 transition-all">
+                <BarChart3 className="w-4 h-4 text-gray-600 group-hover:text-blue-600" />
+              </div>
+              <span className="font-medium">Dashboard</span>
+            </button>
+            <button
+              onClick={() => {
+                navigate('/loans')
+                setIsOpen(false)
+              }}
+              className="group w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center transition-all duration-200 rounded-lg mx-2"
+            >
+              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-100 group-hover:scale-110 transition-all">
+                <FileText className="w-4 h-4 text-gray-600 group-hover:text-blue-600" />
+              </div>
+              <span className="font-medium">My Loans</span>
+            </button>
           </div>
 
           <div className="border-t border-gray-100 pt-2 mt-2">

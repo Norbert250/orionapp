@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -22,9 +22,9 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
+          {/* Disabled Routes - Redirect to Home */}
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/signup" element={<Navigate to="/" replace />} />
           
           {/* Protected Routes */}
           <Route path="/" element={<Home />} />
@@ -74,14 +74,14 @@ function App() {
             </ProtectedRoute>
           } />
           
-          {/* Admin Only Routes */}
+          {/* Dashboard Route */}
           <Route path="/dashboard" element={
-            <ProtectedRoute adminOnly>
+            <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
           } />
           <Route path="/review/:id" element={
-            <ProtectedRoute adminOnly>
+            <ProtectedRoute>
               <ReviewLoan />
             </ProtectedRoute>
           } />
