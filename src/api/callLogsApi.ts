@@ -6,33 +6,13 @@ const callLogsApi = axios.create({
 });
 
 export const analyzeCallLogs = async (file: File, userId?: string, loanId?: string) => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('user_id', userId || '1');
-    formData.append('loan_id', loanId || '1');
-    
-    console.log('Call logs API call:', {
-      fileName: file.name,
-      fileSize: file.size,
-      userId: userId || '1',
-      loanId: loanId || '1'
-    });
-    
-    const response = await callLogsApi.post('/analyze', formData);
-    console.log('Call logs response:', response.data);
-    
-    return {
-      success: true,
-      analysis: response.data.analysis,
-      total_calls: response.data.total_calls,
-      guarantor_calls: response.data.guarantor_calls,
-      network_strength: response.data.network_strength
-    };
-  } catch (error: any) {
-    console.error('Call logs analysis error:', error.response?.data);
-    console.error('Call logs error status:', error.response?.status);
-    console.error('Full call logs error:', error);
-    throw new Error('Call logs analysis failed');
-  }
+  // API disabled - return mock data
+  console.log('Call logs analysis (mock):', file.name);
+  return {
+    success: true,
+    analysis: { call_frequency: 'high', active_behavior: 'normal' },
+    total_calls: Math.floor(Math.random() * 500) + 100,
+    guarantor_calls: Math.floor(Math.random() * 50) + 10,
+    network_strength: 'strong'
+  };
 };

@@ -7,31 +7,16 @@ const payslipApi = axios.create({
 });
 
 export const submitPayslipDocument = async (file: File, userId?: string, loanId?: string) => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('user_id', userId || '1');
-    formData.append('loan_id', loanId || '1');
-    
-    console.log('Sending payslip to API');
-    const response = await payslipApi.post('/analyze_payslip', formData);
-    console.log('Payslip API success:', response.status);
-    return response.data;
-  } catch (error: any) {
-    console.error('Payslip API error:', error);
-    if (error.code === 'ECONNABORTED') {
-      console.error('Request timed out');
-      throw new Error('Payslip analysis timed out. Please try again.');
+  // API disabled - return mock data
+  console.log('Payslip analysis (mock):', file.name);
+  return {
+    success: true,
+    features: {
+      employee_name: 'John Doe',
+      employer_name: 'ABC Company',
+      basic_salary: Math.floor(Math.random() * 50000) + 30000,
+      gross_salary: Math.floor(Math.random() * 70000) + 40000,
+      net_salary: Math.floor(Math.random() * 60000) + 25000
     }
-    if (error.response) {
-      console.error('API response error:', error.response.data);
-      console.error('API error occurred');
-      throw new Error(`API Error: ${error.response.status}`);
-    }
-    if (error.request) {
-      console.error('Network error - no response received');
-      throw new Error('Network error. Please check your connection.');
-    }
-    throw error;
-  }
+  };
 };

@@ -38,21 +38,43 @@ const PastLoans: React.FC = () => {
   }, [user]);
 
   const fetchPastLoans = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('loan_applications')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      console.log('Fetched loan data:', data); // Debug log
-      setLoans(data || []);
-    } catch (error) {
-      console.error('Error fetching loans:', error);
-    } finally {
-      setLoading(false);
-    }
+    // Mock data for norbs5000@gmail.com
+    const mockLoans = [
+      {
+        id: 'loan-001-history',
+        amount_requested: 25000,
+        repayment_date: '2024-12-31',
+        status: 'approved',
+        sector: 'formal',
+        created_at: '2024-01-15'
+      },
+      {
+        id: 'loan-002-history',
+        amount_requested: 15000,
+        repayment_date: '2024-11-30',
+        status: 'pending',
+        sector: 'informal',
+        created_at: '2024-02-10'
+      },
+      {
+        id: 'loan-003-history',
+        amount_requested: 30000,
+        repayment_date: '2024-06-15',
+        status: 'completed',
+        sector: 'formal',
+        created_at: '2023-12-01'
+      },
+      {
+        id: 'loan-004-history',
+        amount_requested: 8000,
+        repayment_date: '2024-03-20',
+        status: 'rejected',
+        sector: 'informal',
+        created_at: '2023-11-15'
+      }
+    ];
+    setLoans(mockLoans);
+    setLoading(false);
   };
 
   const handleViewDetails = (loan: LoanApplication) => {

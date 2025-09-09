@@ -13,18 +13,12 @@ export interface IdAnalysisResult {
 }
 
 export const analyzeIdDocument = async (file: File): Promise<IdAnalysisResult> => {
-  const formData = new FormData();
-  formData.append('image', file);  // Changed from 'file' to 'image'
-  
-  const response = await idAnalyzerApi.post('/analyze_id', formData);  // Correct endpoint
-  
-  // Extract data from the fields object
-  const fields = response.data.fields;
-  
+  // API disabled - return mock data
+  console.log('ID analysis (mock):', file.name);
   return {
-    name: fields["Full Name"] || "",
-    nationality: fields["Nationality"] || "",
-    idNumber: fields["ID Number"] || undefined,
-    passportNumber: fields["Passport Number"] || undefined
+    name: 'John Doe',
+    nationality: 'Kenyan',
+    idNumber: '12345678',
+    passportNumber: undefined
   };
 };

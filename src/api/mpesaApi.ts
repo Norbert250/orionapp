@@ -6,35 +6,13 @@ const mpesaApi = axios.create({
 });
 
 export const analyzeMpesaStatement = async (file: File, password?: string, userId?: string, loanId?: string) => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('user_id', userId || '1');
-    formData.append('loan_id', loanId || '1');
-    formData.append('password', password || '');
-    
-    console.log('M-Pesa API call:', {
-      fileName: file.name,
-      fileSize: file.size,
-      hasPassword: !!password,
-      userId: userId || '1',
-      loanId: loanId || '1'
-    });
-    
-    const response = await mpesaApi.post('/analyzempesa', formData);
-    console.log('M-Pesa response:', response.data);
-    
-    return {
-      success: true,
-      ...response.data
-    };
-  } catch (error: any) {
-    if (error.code === 'ECONNABORTED') {
-      console.error('M-Pesa API timeout');
-      throw new Error('M-Pesa analysis timed out. Please try again.');
-    }
-    console.error('M-Pesa analysis error:', error.response?.data);
-    console.error('M-Pesa error status:', error.response?.status);
-    throw new Error(`M-Pesa analysis failed: ${error.response?.status || error.message}`);
-  }
+  // API disabled - return mock data
+  console.log('M-Pesa analysis (mock):', file.name);
+  return {
+    success: true,
+    total_transactions: Math.floor(Math.random() * 200) + 50,
+    total_inflow: Math.floor(Math.random() * 100000) + 20000,
+    total_outflow: Math.floor(Math.random() * 80000) + 15000,
+    avg_balance: Math.floor(Math.random() * 5000) + 1000
+  };
 };
