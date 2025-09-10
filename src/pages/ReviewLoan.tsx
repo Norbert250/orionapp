@@ -9,6 +9,8 @@ const ReviewLoan = () => {
   const [analysisData, setAnalysisData] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [selectedDocumentType, setSelectedDocumentType] = useState<string>('');
 
   useEffect(() => {
     fetchLoanDetails();
@@ -71,6 +73,18 @@ const ReviewLoan = () => {
     } catch (err) {
       console.error('Failed to copy ID');
     }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return '#10b981';
+    if (score >= 60) return '#f59e0b';
+    if (score >= 40) return '#f97316';
+    return '#ef4444';
+  };
+
+  const handleViewDocuments = (documentType: string) => {
+    setSelectedDocumentType(documentType);
+    setShowDocumentModal(true);
   };
 
   if (loading) {
@@ -275,14 +289,14 @@ const ReviewLoan = () => {
                   <div className="relative w-12 h-12">
                     <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#dbeafe" strokeWidth="2"/>
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#005baa" strokeWidth="2" strokeDasharray={`${analysisData.bank?.[0]?.credit_score || 75}, 100`} strokeLinecap="round"/>
+                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(analysisData.bank?.[0]?.credit_score || 75)} strokeWidth="2" strokeDasharray={`${analysisData.bank?.[0]?.credit_score || 75}, 100`} strokeLinecap="round"/>
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-bold" style={{color: '#005baa'}}>{analysisData.bank?.[0]?.credit_score || 75}%</span>
+                      <span className="text-xs font-bold" style={{color: getScoreColor(analysisData.bank?.[0]?.credit_score || 75)}}>{analysisData.bank?.[0]?.credit_score || 75}%</span>
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs font-semibold" style={{color: '#005baa'}}>Bank Statement</div>
+                    <div className="text-xs font-semibold" style={{color: getScoreColor(analysisData.bank?.[0]?.credit_score || 75)}}>Bank Statement</div>
                   </div>
                 </div>
                 
@@ -291,14 +305,14 @@ const ReviewLoan = () => {
                   <div className="relative w-12 h-12">
                     <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#dcfce7" strokeWidth="2"/>
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2ecc71" strokeWidth="2" strokeDasharray={`${analysisData.mpesa?.[0]?.credit_score || 82}, 100`} strokeLinecap="round"/>
+                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(analysisData.mpesa?.[0]?.credit_score || 82)} strokeWidth="2" strokeDasharray={`${analysisData.mpesa?.[0]?.credit_score || 82}, 100`} strokeLinecap="round"/>
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-bold" style={{color: '#2ecc71'}}>{analysisData.mpesa?.[0]?.credit_score || 82}%</span>
+                      <span className="text-xs font-bold" style={{color: getScoreColor(analysisData.mpesa?.[0]?.credit_score || 82)}}>{analysisData.mpesa?.[0]?.credit_score || 82}%</span>
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs font-semibold" style={{color: '#2ecc71'}}>M-Pesa Analysis</div>
+                    <div className="text-xs font-semibold" style={{color: getScoreColor(analysisData.mpesa?.[0]?.credit_score || 82)}}>M-Pesa Analysis</div>
                   </div>
                 </div>
                 
@@ -307,7 +321,7 @@ const ReviewLoan = () => {
                   <div className="relative w-12 h-12">
                     <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
                       <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f3e8ff" strokeWidth="2"/>
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeDasharray={`${analysisData.assets?.[0]?.credit_score || 68}, 100`} strokeLinecap="round"/>
+                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(analysisData.assets?.[0]?.credit_score || 68)} strokeWidth="2" strokeDasharray={`${analysisData.assets?.[0]?.credit_score || 68}, 100`} strokeLinecap="round"/>
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <span className="text-xs font-bold" style={{color: '#8b5cf6'}}>{analysisData.assets?.[0]?.credit_score || 68}%</span>
@@ -465,7 +479,10 @@ const ReviewLoan = () => {
                   <div>Average Balance: <span className="font-semibold">KSh {analysis.average_balance?.toLocaleString() || 'N/A'}</span></div>
                   <div>Transaction Count: <span className="font-semibold">{analysis.transaction_count || 'N/A'}</span></div>
                 </div>
-                <button className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                <button 
+                  onClick={() => handleViewDocuments('Bank Statement')}
+                  className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
                   View Documents
                 </button>
               </div>
@@ -479,7 +496,10 @@ const ReviewLoan = () => {
                   <div>Transaction Volume: <span className="font-semibold">KSh {analysis.transaction_volume?.toLocaleString() || 'N/A'}</span></div>
                   <div>Frequency: <span className="font-semibold">{analysis.transaction_frequency || 'N/A'}</span></div>
                 </div>
-                <button className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                <button 
+                  onClick={() => handleViewDocuments('M-Pesa')}
+                  className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                >
                   View Documents
                 </button>
               </div>
@@ -493,7 +513,10 @@ const ReviewLoan = () => {
                   <div>Total Value: <span className="font-semibold">KSh {analysis.total_value?.toLocaleString() || 'N/A'}</span></div>
                   <div>Asset Count: <span className="font-semibold">{analysis.asset_count || 'N/A'}</span></div>
                 </div>
-                <button className="text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors">
+                <button 
+                  onClick={() => handleViewDocuments('Assets')}
+                  className="text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                >
                   View Documents
                 </button>
               </div>
@@ -507,7 +530,10 @@ const ReviewLoan = () => {
                   <div>Employee Name: <span className="font-semibold">{analysis.employee_name || 'N/A'}</span></div>
                   <div>Gross Salary: <span className="font-semibold">KSh {analysis.gross_salary?.toLocaleString() || 'N/A'}</span></div>
                 </div>
-                <button className="text-xs px-2 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors">
+                <button 
+                  onClick={() => handleViewDocuments('Payslip')}
+                  className="text-xs px-2 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors"
+                >
                   View Documents
                 </button>
               </div>
@@ -521,7 +547,10 @@ const ReviewLoan = () => {
                   <div>Contact Diversity: <span className="font-semibold">{analysis.contact_diversity || 'N/A'}</span></div>
                   <div>Communication Pattern: <span className="font-semibold">{analysis.communication_pattern || 'N/A'}</span></div>
                 </div>
-                <button className="text-xs px-2 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors">
+                <button 
+                  onClick={() => handleViewDocuments('Call Logs')}
+                  className="text-xs px-2 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
+                >
                   View Documents
                 </button>
               </div>
@@ -535,7 +564,10 @@ const ReviewLoan = () => {
                 <div>Location Stability: <span className="font-semibold">High</span></div>
                 <div>Movement Pattern: <span className="font-semibold">Regular</span></div>
               </div>
-              <button className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+              <button 
+                onClick={() => handleViewDocuments('GPS')}
+                className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
                 View Documents
               </button>
             </div>
@@ -579,6 +611,48 @@ const ReviewLoan = () => {
             </button>
           </div>
         </div>
+
+        {/* Document Modal */}
+        {showDocumentModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 rounded-t-2xl">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-gray-900">{selectedDocumentType} Documents</h3>
+                  <button
+                    onClick={() => setShowDocumentModal(false)}
+                    className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-100 rounded-lg p-4 h-64 flex items-center justify-center">
+                    <div className="text-center">
+                      <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                      </svg>
+                      <p className="text-gray-600">Mock {selectedDocumentType} Document 1</p>
+                    </div>
+                  </div>
+                  <div className="bg-gray-100 rounded-lg p-4 h-64 flex items-center justify-center">
+                    <div className="text-center">
+                      <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                      <p className="text-gray-600">Mock {selectedDocumentType} Document 2</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

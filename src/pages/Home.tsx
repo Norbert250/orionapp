@@ -153,10 +153,11 @@ const Home: React.FC = () => {
                 </button>
                 
                 <button
-                  onClick={() => navigate('/loans')}
+                  onClick={() => navigate('/assess-medical-needs')}
                   className="bg-white text-gray-700 border border-gray-300 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-gray-50 transition-colors flex items-center justify-center"
                 >
-                  View Loan History
+                  <Stethoscope className="w-5 h-5 mr-2" />
+                  Assess Medical Needs
                 </button>
               </>
             )}

@@ -201,7 +201,7 @@ const Dashboard = () => {
                   placeholder="Search by name, email, or loan ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-10 py-3 border border-slate-200 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 shadow-sm focus:shadow-lg bg-white/90 backdrop-blur-sm text-slate-700 placeholder-slate-400"
+                  className="pl-10 pr-10 py-2 border border-slate-200 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 shadow-sm focus:shadow-lg bg-white/90 backdrop-blur-sm text-slate-700 placeholder-slate-400"
                 />
                 {searchTerm && (
                   <button
@@ -221,7 +221,7 @@ const Dashboard = () => {
                   setSortBy(field);
                   setSortOrder(order);
                 }}
-                className="px-4 py-3 border border-slate-200 rounded-lg bg-white/90 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 shadow-sm focus:shadow-lg text-slate-700 font-medium min-w-[180px]"
+                className="px-4 py-2 border border-slate-200 rounded-lg bg-white/90 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 shadow-sm focus:shadow-lg text-slate-700 font-medium min-w-[180px]"
               >
                 <option value="created_at-desc">📅 Newest First</option>
                 <option value="created_at-asc">📅 Oldest First</option>
@@ -234,11 +234,11 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-4 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{color: '#333333'}}>Total Applications</p>
-                <p className="text-xl font-bold" style={{color: '#333333'}}>{stats.total}</p>
+                <p className="text-lg font-bold" style={{color: '#333333'}}>{stats.total}</p>
                 <div className="flex items-center mt-1">
                   <div className="w-1.5 h-1.5 rounded-full mr-1" style={{backgroundColor: '#005baa'}}></div>
                   <span className="text-xs" style={{color: '#333333'}}>All time</span>
@@ -252,11 +252,11 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-4 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{color: '#666666'}}>Pending Review</p>
-                <p className="text-xl font-bold" style={{color: '#F39C12'}}>{stats.pending}</p>
+                <p className="text-lg font-bold" style={{color: '#F39C12'}}>{stats.pending}</p>
                 <div className="flex items-center mt-1">
                   <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mr-1 animate-pulse"></div>
                   <span className="text-xs" style={{color: '#666666'}}>Awaiting action</span>
@@ -270,36 +270,36 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl p-8 border border-white/20 transform hover:-translate-y-2 transition-all duration-300">
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">Approved</p>
-                <p className="text-4xl font-bold text-emerald-600">{stats.approved}</p>
-                <div className="flex items-center mt-2">
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div>
-                  <span className="text-xs text-slate-500">Successfully funded</span>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{color: '#666666'}}>Approved</p>
+                <p className="text-lg font-bold text-emerald-600">{stats.approved}</p>
+                <div className="flex items-center mt-1">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1"></div>
+                  <span className="text-xs" style={{color: '#666666'}}>Successfully funded</span>
                 </div>
               </div>
-              <div className="p-4 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl shadow-lg group-hover:scale-110 transition-transform">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 rounded shadow group-hover:scale-110 transition-transform bg-emerald-500">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl p-8 border border-white/20 transform hover:-translate-y-2 transition-all duration-300">
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">Rejected</p>
-                <p className="text-4xl font-bold text-red-600">{stats.rejected}</p>
-                <div className="flex items-center mt-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                  <span className="text-xs text-slate-500">Did not qualify</span>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{color: '#666666'}}>Rejected</p>
+                <p className="text-lg font-bold text-red-600">{stats.rejected}</p>
+                <div className="flex items-center mt-1">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full mr-1"></div>
+                  <span className="text-xs" style={{color: '#666666'}}>Did not qualify</span>
                 </div>
               </div>
-              <div className="p-4 bg-gradient-to-r from-red-500 to-rose-500 rounded-xl shadow-lg group-hover:scale-110 transition-transform">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 rounded shadow group-hover:scale-110 transition-transform bg-red-500">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
               </div>
