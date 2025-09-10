@@ -33,7 +33,7 @@ const Navbar = () => {
               <Heart className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-blue-600">LoanApp</h1>
+              <h1 className="text-xl font-bold text-blue-600">Orion Africa</h1>
               <p className="text-sm text-gray-500 hidden sm:block">Financial Solutions</p>
             </div>
           </div>

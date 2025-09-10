@@ -48,7 +48,7 @@ const Home: React.FC = () => {
                 <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                   <Heart className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-blue-600">LoanApp</h1>
+                <h1 className="text-2xl font-bold text-blue-600">Orion Africa</h1>
               </div>
               <div className="flex items-center space-x-4">
                 <button
@@ -251,26 +251,26 @@ const Home: React.FC = () => {
                   <Heart className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold">LoanApp</h3>
+                  <h3 className="text-xl font-bold">Orion Africa</h3>
                   <p className="text-gray-400">Financial Solutions for Everyone</p>
                 </div>
               </div>
               <p className="text-gray-400 mb-4 max-w-md">
-                Making financial services accessible to all sectors of society with fast, secure, and reliable loan processing.
+Empowering Africa with innovative financial solutions through fast, secure, and reliable loan processing.
               </p>
             </div>
 
             <div>
               <h4 className="font-semibold mb-4">Contact</h4>
               <div className="space-y-2 text-gray-400">
-                <p>support@loanapp.com</p>
+                <p>support@orionafrica.com</p>
                 <p>+254 (700) 123-456</p>
               </div>
             </div>
           </div>
 
           <div className="border-t border-gray-800 pt-8 text-center">
-            <p className="text-gray-400">&copy; 2024 LoanApp. All rights reserved.</p>
+            <p className="text-gray-400">&copy; 2024 Orion Africa. All rights reserved.</p>
           </div>
         </div>
       </footer>
