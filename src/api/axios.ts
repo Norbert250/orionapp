@@ -12,9 +12,11 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://orionbackend-39v9.onrender.com/api',
+  baseURL: 'https://orionapisalpha.onrender.com',
   headers: {
     'Content-Type': 'application/json',
+    // Add authorization header if needed
+    // 'Authorization': `Bearer ${import.meta.env.VITE_API_TOKEN || ''}`,
   },
 });
 

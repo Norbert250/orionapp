@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Asset } from '../../types';
 import { mockAssetValueCheck } from '../../api/submitform';
+import { createAssetsBatch } from '../../api/assetsAnalysisApi';
 
 interface AssetUploaderProps {
   assets: Asset[];
@@ -18,14 +19,26 @@ const AssetUploader: React.FC<AssetUploaderProps> = ({ assets, onAssetsChange })
       setLoading(assets.length + i);
 
       try {
-        const { value, requiresLicense } = await mockAssetValueCheck(file);
-        const newAsset: Asset = {
-          file,
-          value,
-          requiresLicense,
-        };
-
-        onAssetsChange([...assets, newAsset]);
+        // Try new assets analysis API first
+        try {
+          const analysisResult = await createAssetsBatch([file], '53bf969e-f1ca-40db-a145-5b58541539c5');
+          const creditFeatures = analysisResult.analysis_result?.credit_features;
+          const newAsset: Asset = {
+            file,
+            value: creditFeatures?.total_asset_value || Math.floor(Math.random() * 5000) + 1000,
+            requiresLicense: creditFeatures?.has_high_value_assets || Math.random() > 0.7,
+          };
+          onAssetsChange([...assets, newAsset]);
+        } catch (apiError) {
+          console.log('Assets API failed, using fallback');
+          const { value, requiresLicense } = await mockAssetValueCheck(file);
+          const newAsset: Asset = {
+            file,
+            value,
+            requiresLicense,
+          };
+          onAssetsChange([...assets, newAsset]);
+        }
       } catch (error) {
         console.error('Error checking asset value:', error);
       } finally {

@@ -31,27 +31,21 @@ const PayLoan: React.FC = () => {
   }, [user]);
 
   const fetchActiveLoans = async () => {
-    // Mock data for norbs5000@gmail.com
-    const mockLoans = [
-      {
-        id: 'loan-001-active',
-        amount_requested: 25000,
-        repayment_date: '2024-12-31',
-        status: 'approved',
-        sector: 'formal',
-        created_at: '2024-01-15'
-      },
-      {
-        id: 'loan-002-active',
-        amount_requested: 15000,
-        repayment_date: '2024-11-30',
-        status: 'approved',
-        sector: 'informal',
-        created_at: '2024-02-10'
-      }
-    ];
-    setLoans(mockLoans);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('loan_applications')
+        .select('*')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setLoans(data || []);
+    } catch (error) {
+      console.error('Error fetching active loans:', error);
+      setLoans([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePayNow = (loan: LoanApplication) => {
@@ -68,12 +62,15 @@ const PayLoan: React.FC = () => {
     try {
       const { error } = await supabase
         .from('loan_applications')
-        .update({ status: 'completed' })
+        .update({ 
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', selectedLoan.id);
 
       if (error) throw error;
 
-      alert(`Payment of $${paymentAmount} processed successfully!`);
+      alert(`Payment of KSh ${Number(paymentAmount).toLocaleString()} processed successfully!`);
       setShowPaymentModal(false);
       fetchActiveLoans();
     } catch (error) {
@@ -87,10 +84,7 @@ const PayLoan: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
+    return `KSh ${amount.toLocaleString()}`;
   };
 
   const formatDate = (dateString: string) => {

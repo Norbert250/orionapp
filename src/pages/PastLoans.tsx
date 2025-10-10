@@ -21,6 +21,13 @@ interface LoanApplication {
   call_logs?: string[];
   salary_payslips?: string[];
   proof_of_illness?: string;
+  bank_statement_score?: number;
+  mpesa_score?: number;
+  gps_score?: number;
+  assets_score?: number;
+  call_logs_score?: number;
+  payslips_score?: number;
+  total_credit_score?: number;
 }
 
 const PastLoans: React.FC = () => {
@@ -38,43 +45,20 @@ const PastLoans: React.FC = () => {
   }, [user]);
 
   const fetchPastLoans = async () => {
-    // Mock data for norbs5000@gmail.com
-    const mockLoans = [
-      {
-        id: 'loan-001-history',
-        amount_requested: 25000,
-        repayment_date: '2024-12-31',
-        status: 'approved',
-        sector: 'formal',
-        created_at: '2024-01-15'
-      },
-      {
-        id: 'loan-002-history',
-        amount_requested: 15000,
-        repayment_date: '2024-11-30',
-        status: 'pending',
-        sector: 'informal',
-        created_at: '2024-02-10'
-      },
-      {
-        id: 'loan-003-history',
-        amount_requested: 30000,
-        repayment_date: '2024-06-15',
-        status: 'completed',
-        sector: 'formal',
-        created_at: '2023-12-01'
-      },
-      {
-        id: 'loan-004-history',
-        amount_requested: 8000,
-        repayment_date: '2024-03-20',
-        status: 'rejected',
-        sector: 'informal',
-        created_at: '2023-11-15'
-      }
-    ];
-    setLoans(mockLoans);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('loan_applications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setLoans(data || []);
+    } catch (error) {
+      console.error('Error fetching loan history:', error);
+      setLoans([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleViewDetails = (loan: LoanApplication) => {
@@ -83,10 +67,7 @@ const PastLoans: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
+    return `KSh ${amount.toLocaleString()}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -351,6 +332,105 @@ const PastLoans: React.FC = () => {
                       </p>
                     </div>
                   )}
+
+                  {/* Credit Scores Section */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                      <Users className="w-5 h-5 mr-2" />
+                      Your Credit Scores
+                    </h4>
+                    <div className="bg-gradient-to-r from-blue-50 to-teal-50 border border-blue-200 rounded-lg p-6">
+                      {/* Overall Score - Centered */}
+                      <div className="text-center mb-8">
+                        <div className="relative w-24 h-24 mx-auto mb-3">
+                          <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 36 36">
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e5e7eb" strokeWidth="3"/>
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2563eb" strokeWidth="3" strokeDasharray={`${(selectedLoan.total_credit_score || 0)}, 100`} strokeLinecap="round"/>
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-lg font-bold text-blue-600">{selectedLoan.total_credit_score || 0}%</span>
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-gray-700">Overall Credit Score</div>
+                      </div>
+                      
+                      {/* Individual Scores - 3x2 Grid */}
+                      <div className="grid grid-cols-3 gap-6">
+                        <div className="text-center">
+                          <div className="relative w-16 h-8 mx-auto mb-2">
+                            <svg className="w-16 h-8" viewBox="0 0 80 40">
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#e5e7eb" strokeWidth="6" strokeLinecap="round"/>
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#16a34a" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(selectedLoan.bank_statement_score || 0) * 1.01}, 101`}/>
+                            </svg>
+                            <div className="absolute inset-0 flex items-end justify-center">
+                              <span className="text-xs font-semibold text-green-600">{selectedLoan.bank_statement_score || 0}%</span>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-600">Bank Statement</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="relative w-16 h-8 mx-auto mb-2">
+                            <svg className="w-16 h-8" viewBox="0 0 80 40">
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#e5e7eb" strokeWidth="6" strokeLinecap="round"/>
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#9333ea" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(selectedLoan.assets_score || 0) * 1.01}, 101`}/>
+                            </svg>
+                            <div className="absolute inset-0 flex items-end justify-center">
+                              <span className="text-xs font-semibold text-purple-600">{selectedLoan.assets_score || 0}%</span>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-600">Assets</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="relative w-16 h-8 mx-auto mb-2">
+                            <svg className="w-16 h-8" viewBox="0 0 80 40">
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#e5e7eb" strokeWidth="6" strokeLinecap="round"/>
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#0891b2" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(selectedLoan.payslips_score || 0) * 1.01}, 101`}/>
+                            </svg>
+                            <div className="absolute inset-0 flex items-end justify-center">
+                              <span className="text-xs font-semibold text-cyan-600">{selectedLoan.payslips_score || 0}%</span>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-600">Payslips</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="relative w-16 h-8 mx-auto mb-2">
+                            <svg className="w-16 h-8" viewBox="0 0 80 40">
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#e5e7eb" strokeWidth="6" strokeLinecap="round"/>
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#0d9488" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(selectedLoan.mpesa_score || 0) * 1.01}, 101`}/>
+                            </svg>
+                            <div className="absolute inset-0 flex items-end justify-center">
+                              <span className="text-xs font-semibold text-teal-600">{selectedLoan.mpesa_score || 0}%</span>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-600">M-Pesa</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="relative w-16 h-8 mx-auto mb-2">
+                            <svg className="w-16 h-8" viewBox="0 0 80 40">
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#e5e7eb" strokeWidth="6" strokeLinecap="round"/>
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#ea580c" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(selectedLoan.call_logs_score || 0) * 1.01}, 101`}/>
+                            </svg>
+                            <div className="absolute inset-0 flex items-end justify-center">
+                              <span className="text-xs font-semibold text-orange-600">{selectedLoan.call_logs_score || 0}%</span>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-600">Call Logs</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="relative w-16 h-8 mx-auto mb-2">
+                            <svg className="w-16 h-8" viewBox="0 0 80 40">
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#e5e7eb" strokeWidth="6" strokeLinecap="round"/>
+                              <path d="M8 40 A 32 32 0 0 1 72 40" fill="none" stroke="#dc2626" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(selectedLoan.gps_score || 0) * 1.01}, 101`}/>
+                            </svg>
+                            <div className="absolute inset-0 flex items-end justify-center">
+                              <span className="text-xs font-semibold text-red-600">{selectedLoan.gps_score || 0}%</span>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-600">GPS Analysis</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Documents Section */}
                   <div>

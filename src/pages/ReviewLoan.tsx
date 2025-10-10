@@ -11,6 +11,8 @@ const ReviewLoan = () => {
   const [copied, setCopied] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [selectedDocumentType, setSelectedDocumentType] = useState<string>('');
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
 
   useEffect(() => {
     fetchLoanDetails();
@@ -27,14 +29,25 @@ const ReviewLoan = () => {
       if (loanError) throw loanError;
       setLoan(loanData);
 
+      console.log('Fetching guarantors for loan_id:', id);
       const [guarantor1Response, guarantor2Response] = await Promise.all([
-        supabase.from('guarantor1').select('*').eq('loan_id', id).single(),
-        supabase.from('guarantor2').select('*').eq('loan_id', id).single()
+        supabase.from('guarantor1').select('*').eq('loan_id', id).maybeSingle(),
+        supabase.from('guarantor2').select('*').eq('loan_id', id).maybeSingle()
       ]);
 
       const guarantorsList = [];
-      if (guarantor1Response.data) guarantorsList.push(guarantor1Response.data);
-      if (guarantor2Response.data) guarantorsList.push(guarantor2Response.data);
+      console.log('Guarantor1 response:', guarantor1Response);
+      console.log('Guarantor2 response:', guarantor2Response);
+      if (guarantor1Response.data && !guarantor1Response.error) {
+        console.log('Adding guarantor1 to list:', guarantor1Response.data);
+        guarantorsList.push(guarantor1Response.data);
+      }
+      if (guarantor2Response.data && !guarantor2Response.error) {
+        console.log('Adding guarantor2 to list:', guarantor2Response.data);
+        guarantorsList.push(guarantor2Response.data);
+      }
+      console.log('Final guarantors list length:', guarantorsList.length);
+      console.log('Final guarantors list:', guarantorsList);
       setGuarantors(guarantorsList);
 
       const [bankAnalysis, payslipAnalysis, callLogsAnalysis, mpesaAnalysis, assetsAnalysis] = await Promise.all([
@@ -46,11 +59,12 @@ const ReviewLoan = () => {
       ]);
 
       setAnalysisData({
-        bank: [{ credit_score: 75, average_balance: 45000, transaction_count: 120 }],
-        payslip: [{ credit_score: 90, employee_name: 'John Doe', gross_salary: 85000 }],
-        callLogs: [{ credit_score: 73, contact_diversity: 'High', communication_pattern: 'Regular' }],
-        mpesa: [{ credit_score: 82, transaction_volume: 125000, transaction_frequency: 'Daily' }],
-        assets: [{ credit_score: 68, total_value: 350000, asset_count: 5 }]
+        bank: bankAnalysis.data || [],
+        payslip: payslipAnalysis.data || [],
+        callLogs: callLogsAnalysis.data || [],
+        mpesa: mpesaAnalysis.data || [],
+        assets: assetsAnalysis.data || [],
+        gps: []
       });
     } catch (error) {
       console.error('Error fetching loan details');
@@ -82,9 +96,124 @@ const ReviewLoan = () => {
     return '#ef4444';
   };
 
-  const handleViewDocuments = (documentType: string) => {
+  const fetchDocuments = async (documentType: string) => {
+    setLoadingDocuments(true);
+    try {
+      let documents = [];
+      
+      switch (documentType) {
+        case 'Bank Statement':
+          console.log('Fetching bank statement documents for loan_id:', id);
+          const { data: bankDocs, error: bankError } = await supabase
+            .from('bankstatementfiles')
+            .select('*')
+            .eq('loan_id', id);
+          
+          if (bankError) {
+            console.error('Error fetching bank statement documents:', bankError);
+          }
+          
+          console.log('Bank statement documents found:', bankDocs);
+          documents = bankDocs || [];
+          break;
+          
+        case 'Payslip':
+          const { data: payslipDocs } = await supabase
+            .from('payslipfiles')
+            .select('*')
+            .eq('loan_id', id);
+          documents = payslipDocs || [];
+          break;
+          
+        case 'M-Pesa':
+          const { data: mpesaDocs } = await supabase
+            .from('mpesa_documents')
+            .select('*')
+            .eq('loan_id', id);
+          documents = mpesaDocs || [];
+          break;
+          
+        case 'Call Logs':
+          const { data: callLogDocs } = await supabase
+            .from('calllogfiles')
+            .select('*')
+            .eq('loan_id', id);
+          documents = callLogDocs || [];
+          break;
+          
+        case 'Assets':
+          const { data: assetDocs } = await supabase
+            .from('assets')
+            .select('*')
+            .eq('loan_id', id);
+          documents = assetDocs || [];
+          break;
+          
+        case 'GPS':
+          if (loan.home_photo_url && loan.home_photo_url !== null) {
+            documents = [{ 
+              filename: 'home_photo.jpg', 
+              file_url: loan.home_photo_url, 
+              original_filename: 'Home Photo (GPS Location)' 
+            }];
+          } else {
+            // Fallback: check other_documents table for home photo
+            const { data: homePhotos } = await supabase
+              .from('other_documents')
+              .select('*')
+              .eq('loan_id', id)
+              .eq('document_type', 'home_photo');
+            
+            if (homePhotos && homePhotos.length > 0) {
+              documents = homePhotos.map(photo => ({
+                filename: photo.filename,
+                file_url: photo.file_url,
+                original_filename: photo.original_filename || 'Home Photo (GPS Location)'
+              }));
+            } else {
+              documents = [{ 
+                filename: 'no_photo.txt', 
+                file_url: null, 
+                original_filename: 'No Home Photo Available' 
+              }];
+            }
+          }
+          break;
+      }
+      
+      console.log(`Final documents array for ${documentType}:`, documents);
+      setDocuments(documents);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      setDocuments([]);
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
+
+  const handleViewDocuments = async (documentType: string) => {
     setSelectedDocumentType(documentType);
     setShowDocumentModal(true);
+    await fetchDocuments(documentType);
+  };
+
+  const getDocumentUrl = (path: string, bucket: string = 'documents') => {
+    if (!path) return null;
+    
+    // Handle mock paths
+    if (path.startsWith('mock-')) {
+      console.log('Mock path detected:', path);
+      return null;
+    }
+    
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    console.log('Generated document URL:', data.publicUrl, 'for path:', path);
+    return data.publicUrl;
+  };
+
+  const isImageFile = (filename: string) => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+    return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext));
   };
 
   if (loading) {
@@ -285,100 +414,130 @@ const ReviewLoan = () => {
 
               <div className="max-h-40 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-300">
                 {/* Bank Statement Analysis */}
-                <div className="bg-blue-50 rounded p-3 border border-blue-100 flex items-center gap-3">
-                  <div className="relative w-12 h-12">
-                    <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#dbeafe" strokeWidth="2"/>
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(analysisData.bank?.[0]?.credit_score || 75)} strokeWidth="2" strokeDasharray={`${analysisData.bank?.[0]?.credit_score || 75}, 100`} strokeLinecap="round"/>
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-bold" style={{color: getScoreColor(analysisData.bank?.[0]?.credit_score || 75)}}>{analysisData.bank?.[0]?.credit_score || 75}%</span>
+                {(() => {
+                  const bankScore = loan.bank_statement_score || 0;
+                  return (
+                    <div className="bg-blue-50 rounded p-3 border border-blue-100 flex items-center gap-3">
+                      <div className="relative w-12 h-12">
+                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#dbeafe" strokeWidth="2"/>
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(bankScore)} strokeWidth="2" strokeDasharray={`${bankScore}, 100`} strokeLinecap="round"/>
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-xs font-bold" style={{color: getScoreColor(bankScore)}}>{bankScore}%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold" style={{color: getScoreColor(bankScore)}}>Bank Statement</div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold" style={{color: getScoreColor(analysisData.bank?.[0]?.credit_score || 75)}}>Bank Statement</div>
-                  </div>
-                </div>
+                  );
+                })()}
                 
                 {/* M-Pesa Analysis */}
-                <div className="bg-green-50 rounded p-3 border border-green-100 flex items-center gap-3">
-                  <div className="relative w-12 h-12">
-                    <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#dcfce7" strokeWidth="2"/>
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(analysisData.mpesa?.[0]?.credit_score || 82)} strokeWidth="2" strokeDasharray={`${analysisData.mpesa?.[0]?.credit_score || 82}, 100`} strokeLinecap="round"/>
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-bold" style={{color: getScoreColor(analysisData.mpesa?.[0]?.credit_score || 82)}}>{analysisData.mpesa?.[0]?.credit_score || 82}%</span>
+                {(() => {
+                  const mpesaScore = loan.mpesa_score || (analysisData.mpesa?.[0]?.credit_score || 0);
+                  return (
+                    <div className="bg-green-50 rounded p-3 border border-green-100 flex items-center gap-3">
+                      <div className="relative w-12 h-12">
+                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#dcfce7" strokeWidth="2"/>
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(mpesaScore)} strokeWidth="2" strokeDasharray={`${mpesaScore}, 100`} strokeLinecap="round"/>
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-xs font-bold" style={{color: getScoreColor(mpesaScore)}}>{mpesaScore}%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold" style={{color: getScoreColor(mpesaScore)}}>M-Pesa Analysis</div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold" style={{color: getScoreColor(analysisData.mpesa?.[0]?.credit_score || 82)}}>M-Pesa Analysis</div>
-                  </div>
-                </div>
+                  );
+                })()}
                 
                 {/* Assets Analysis */}
-                <div className="bg-purple-50 rounded p-3 border border-purple-100 flex items-center gap-3">
-                  <div className="relative w-12 h-12">
-                    <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f3e8ff" strokeWidth="2"/>
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(analysisData.assets?.[0]?.credit_score || 68)} strokeWidth="2" strokeDasharray={`${analysisData.assets?.[0]?.credit_score || 68}, 100`} strokeLinecap="round"/>
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-bold" style={{color: '#8b5cf6'}}>{analysisData.assets?.[0]?.credit_score || 68}%</span>
+                {(() => {
+                  const assetsScore = loan.assets_score || (analysisData.assets?.[0]?.credit_score || 0);
+                  return (
+                    <div className="bg-purple-50 rounded p-3 border border-purple-100 flex items-center gap-3">
+                      <div className="relative w-12 h-12">
+                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f3e8ff" strokeWidth="2"/>
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(assetsScore)} strokeWidth="2" strokeDasharray={`${assetsScore}, 100`} strokeLinecap="round"/>
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-xs font-bold" style={{color: getScoreColor(assetsScore)}}>{assetsScore}%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold" style={{color: getScoreColor(assetsScore)}}>Assets Analysis</div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold" style={{color: '#8b5cf6'}}>Assets Analysis</div>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* Payslip Analysis */}
-                <div className="bg-cyan-50 rounded p-3 border border-cyan-100 flex items-center gap-3">
-                  <div className="relative w-12 h-12">
-                    <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ecfeff" strokeWidth="2"/>
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#0891b2" strokeWidth="2" strokeDasharray={`${analysisData.payslip?.[0]?.credit_score || 90}, 100`} strokeLinecap="round"/>
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-bold" style={{color: '#0891b2'}}>{analysisData.payslip?.[0]?.credit_score || 90}%</span>
+                {(() => {
+                  const payslipScore = loan.payslips_score || (analysisData.payslip?.[0]?.credit_score || 0);
+                  return (
+                    <div className="bg-cyan-50 rounded p-3 border border-cyan-100 flex items-center gap-3">
+                      <div className="relative w-12 h-12">
+                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ecfeff" strokeWidth="2"/>
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(payslipScore)} strokeWidth="2" strokeDasharray={`${payslipScore}, 100`} strokeLinecap="round"/>
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-xs font-bold" style={{color: getScoreColor(payslipScore)}}>{payslipScore}%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold" style={{color: getScoreColor(payslipScore)}}>Payslip Analysis</div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold" style={{color: '#0891b2'}}>Payslip Analysis</div>
-                  </div>
-                </div>
+                  );
+                })()}
                 
                 {/* Call Logs Analysis */}
-                <div className="bg-orange-50 rounded p-3 border border-orange-100 flex items-center gap-3">
-                  <div className="relative w-12 h-12">
-                    <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#fff7ed" strokeWidth="2"/>
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f97316" strokeWidth="2" strokeDasharray={`${analysisData.callLogs?.[0]?.credit_score || 73}, 100`} strokeLinecap="round"/>
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-bold" style={{color: '#f97316'}}>{analysisData.callLogs?.[0]?.credit_score || 73}%</span>
+                {(() => {
+                  const callLogsScore = loan.call_logs_score || (analysisData.callLogs?.[0]?.credit_score || 0);
+                  return (
+                    <div className="bg-orange-50 rounded p-3 border border-orange-100 flex items-center gap-3">
+                      <div className="relative w-12 h-12">
+                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#fff7ed" strokeWidth="2"/>
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(callLogsScore)} strokeWidth="2" strokeDasharray={`${callLogsScore}, 100`} strokeLinecap="round"/>
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-xs font-bold" style={{color: getScoreColor(callLogsScore)}}>{callLogsScore}%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold" style={{color: getScoreColor(callLogsScore)}}>Call Logs Analysis</div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold" style={{color: '#f97316'}}>Call Logs Analysis</div>
-                  </div>
-                </div>
+                  );
+                })()}
                 
                 {/* GPS Analysis */}
-                <div className="bg-red-50 rounded p-3 border border-red-100 flex items-center gap-3">
-                  <div className="relative w-12 h-12">
-                    <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#fef2f2" strokeWidth="2"/>
-                      <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#dc2626" strokeWidth="2" strokeDasharray={`${analysisData.gps?.[0]?.credit_score || 85}, 100`} strokeLinecap="round"/>
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-bold" style={{color: '#dc2626'}}>{analysisData.gps?.[0]?.credit_score || 85}%</span>
+                {(() => {
+                  const gpsScore = loan.gps_score || 0;
+                  return (
+                    <div className="bg-red-50 rounded p-3 border border-red-100 flex items-center gap-3">
+                      <div className="relative w-12 h-12">
+                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#fef2f2" strokeWidth="2"/>
+                          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(gpsScore)} strokeWidth="2" strokeDasharray={`${gpsScore}, 100`} strokeLinecap="round"/>
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-xs font-bold" style={{color: getScoreColor(gpsScore)}}>{gpsScore}%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold" style={{color: getScoreColor(gpsScore)}}>GPS Analysis</div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold" style={{color: '#dc2626'}}>GPS Analysis</div>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -422,7 +581,8 @@ const ReviewLoan = () => {
         )}
 
         {/* Guarantors */}
-        {guarantors.length > 0 && (
+        {console.log('Rendering guarantors section, length:', guarantors.length)}
+        {(guarantors.length > 0 || true) && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
             <div className="flex items-center mb-4">
               <div className="w-8 h-8 rounded flex items-center justify-center mr-2" style={{backgroundColor: '#2ecc71'}}>
@@ -437,21 +597,74 @@ const ReviewLoan = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {guarantors.map((guarantor, index) => (
-                <div key={index} className="bg-gray-50 rounded p-3 border border-gray-100">
-                  <div className="flex items-center mb-2">
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center mr-2" style={{backgroundColor: '#2ecc71'}}>
-                      <span className="text-xs font-bold text-white">{index + 1}</span>
+              {guarantors.map((guarantor, index) => {
+                const idDocumentUrl = guarantor.id_document_url ? getImageUrl(guarantor.id_document_url, 'id-documents') : null;
+                
+                return (
+                  <div key={index} className="bg-gray-50 rounded p-3 border border-gray-100">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center">
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center mr-2" style={{backgroundColor: '#2ecc71'}}>
+                          <span className="text-xs font-bold text-white">{index + 1}</span>
+                        </div>
+                        <div>
+                          <span className="text-sm font-semibold" style={{color: '#1a1a1a'}}>
+                            {guarantor.full_name || guarantor.extracted_name || 'N/A'}
+                          </span>
+                          <div className="text-xs" style={{color: '#666666'}}>
+                            {guarantor.nationality || guarantor.extracted_nationality || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                      {idDocumentUrl && (
+                        <div className="w-12 h-12 rounded border border-gray-200 overflow-hidden">
+                          <img
+                            src={idDocumentUrl}
+                            alt="ID Document"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
-                    <span className="text-sm font-semibold" style={{color: '#1a1a1a'}}>{guarantor.name}</span>
+                    <div className="space-y-1 text-xs" style={{color: '#666666'}}>
+                      <div className="flex justify-between">
+                        <span>Contact:</span>
+                        <span className="font-medium">{guarantor.contact || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>ID Number:</span>
+                        <span className="font-medium">{guarantor.id_number || guarantor.extracted_id_number || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Analysis Status:</span>
+                        <span className={`font-medium ${
+                          guarantor.analysis_status === 'completed' ? 'text-green-600' : 'text-yellow-600'
+                        }`}>
+                          {guarantor.analysis_status || 'Pending'}
+                        </span>
+                      </div>
+                    </div>
+                    {idDocumentUrl && (
+                      <div className="mt-2">
+                        <a
+                          href={idDocumentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                        >
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                          </svg>
+                          View ID Document
+                        </a>
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-1 text-xs" style={{color: '#666666'}}>
-                    <div>Phone: {guarantor.phone_number}</div>
-                    <div>ID: {guarantor.id_number}</div>
-                    <div>Relationship: {guarantor.relationship}</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -471,99 +684,125 @@ const ReviewLoan = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {analysisData.bank?.length > 0 && analysisData.bank.map((analysis: any, index: number) => (
-              <div key={index} className="bg-blue-50 rounded p-3 border border-blue-100">
-                <h3 className="font-semibold mb-2" style={{color: '#005baa'}}>Bank Statement Analysis</h3>
+            <div className="bg-blue-50 rounded p-3 border border-blue-100">
+              <h3 className="font-semibold mb-2" style={{color: '#005baa'}}>Bank Statement Analysis</h3>
+              {(loan.bank_statement_score && loan.bank_statement_score > 0) ? (
                 <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                  <div>Credit Score: <span className="font-semibold">{analysis.credit_score || 'N/A'}%</span></div>
-                  <div>Average Balance: <span className="font-semibold">KSh {analysis.average_balance?.toLocaleString() || 'N/A'}</span></div>
-                  <div>Transaction Count: <span className="font-semibold">{analysis.transaction_count || 'N/A'}</span></div>
+                  <div>Credit Score: <span className="font-semibold">{loan.bank_statement_score || analysisData.bank?.[0]?.credit_score || 'N/A'}%</span></div>
+                  <div>Total Value: <span className="font-semibold">KSh {(analysisData.bank?.[0]?.total_deposits || 0).toLocaleString()}</span></div>
+                  <div>Analysis Count: <span className="font-semibold">{analysisData.bank?.[0]?.transaction_count || 'N/A'}</span></div>
                 </div>
-                <button 
-                  onClick={() => handleViewDocuments('Bank Statement')}
-                  className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                >
-                  View Documents
-                </button>
-              </div>
-            ))}
-
-            {analysisData.mpesa?.length > 0 && analysisData.mpesa.map((analysis: any, index: number) => (
-              <div key={index} className="bg-green-50 rounded p-3 border border-green-100">
-                <h3 className="font-semibold mb-2" style={{color: '#2ecc71'}}>M-Pesa Analysis</h3>
+              ) : (
                 <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                  <div>Credit Score: <span className="font-semibold">{analysis.credit_score || 'N/A'}%</span></div>
-                  <div>Transaction Volume: <span className="font-semibold">KSh {analysis.transaction_volume?.toLocaleString() || 'N/A'}</span></div>
-                  <div>Frequency: <span className="font-semibold">{analysis.transaction_frequency || 'N/A'}</span></div>
+                  <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
-                <button 
-                  onClick={() => handleViewDocuments('M-Pesa')}
-                  className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                >
-                  View Documents
-                </button>
-              </div>
-            ))}
+              )}
+              <button 
+                onClick={() => handleViewDocuments('Bank Statement')}
+                className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                View Documents
+              </button>
+            </div>
 
-            {analysisData.assets?.length > 0 && analysisData.assets.map((analysis: any, index: number) => (
-              <div key={index} className="bg-purple-50 rounded p-3 border border-purple-100">
-                <h3 className="font-semibold mb-2" style={{color: '#8b5cf6'}}>Assets Analysis</h3>
+            <div className="bg-green-50 rounded p-3 border border-green-100">
+              <h3 className="font-semibold mb-2" style={{color: '#2ecc71'}}>M-Pesa Analysis</h3>
+              {(loan.mpesa_score || analysisData.mpesa?.length > 0) ? (
                 <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                  <div>Credit Score: <span className="font-semibold">{analysis.credit_score || 'N/A'}%</span></div>
-                  <div>Total Value: <span className="font-semibold">KSh {analysis.total_value?.toLocaleString() || 'N/A'}</span></div>
-                  <div>Asset Count: <span className="font-semibold">{analysis.asset_count || 'N/A'}</span></div>
+                  <div>Credit Score: <span className="font-semibold">{loan.mpesa_score || analysisData.mpesa?.[0]?.credit_score || 'N/A'}%</span></div>
+                  <div>Total Value: <span className="font-semibold">KSh {analysisData.mpesa?.[0]?.transaction_volume?.toLocaleString() || 'N/A'}</span></div>
+                  <div>Analysis Count: <span className="font-semibold">{analysisData.mpesa?.[0]?.transaction_frequency || 'N/A'}</span></div>
                 </div>
-                <button 
-                  onClick={() => handleViewDocuments('Assets')}
-                  className="text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-                >
-                  View Documents
-                </button>
-              </div>
-            ))}
-
-            {analysisData.payslip?.length > 0 && analysisData.payslip.map((analysis: any, index: number) => (
-              <div key={index} className="bg-cyan-50 rounded p-3 border border-cyan-100">
-                <h3 className="font-semibold mb-2" style={{color: '#0891b2'}}>Payslip Analysis</h3>
+              ) : (
                 <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                  <div>Credit Score: <span className="font-semibold">{analysis.credit_score || 'N/A'}%</span></div>
-                  <div>Employee Name: <span className="font-semibold">{analysis.employee_name || 'N/A'}</span></div>
-                  <div>Gross Salary: <span className="font-semibold">KSh {analysis.gross_salary?.toLocaleString() || 'N/A'}</span></div>
+                  <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
-                <button 
-                  onClick={() => handleViewDocuments('Payslip')}
-                  className="text-xs px-2 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors"
-                >
-                  View Documents
-                </button>
-              </div>
-            ))}
+              )}
+              <button 
+                onClick={() => handleViewDocuments('M-Pesa')}
+                className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              >
+                View Documents
+              </button>
+            </div>
 
-            {analysisData.callLogs?.length > 0 && analysisData.callLogs.map((analysis: any, index: number) => (
-              <div key={index} className="bg-orange-50 rounded p-3 border border-orange-100">
-                <h3 className="font-semibold mb-2" style={{color: '#f97316'}}>Call Logs Analysis</h3>
+            <div className="bg-purple-50 rounded p-3 border border-purple-100">
+              <h3 className="font-semibold mb-2" style={{color: '#8b5cf6'}}>Assets Analysis</h3>
+              {(loan.assets_score || analysisData.assets?.length > 0) ? (
                 <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                  <div>Credit Score: <span className="font-semibold">{analysis.credit_score || 'N/A'}%</span></div>
-                  <div>Contact Diversity: <span className="font-semibold">{analysis.contact_diversity || 'N/A'}</span></div>
-                  <div>Communication Pattern: <span className="font-semibold">{analysis.communication_pattern || 'N/A'}</span></div>
+                  <div>Credit Score: <span className="font-semibold">{loan.assets_score || analysisData.assets?.[0]?.credit_score || 'N/A'}%</span></div>
+                  <div>Total Value: <span className="font-semibold">KSh {analysisData.assets?.[0]?.total_value?.toLocaleString() || 'N/A'}</span></div>
+                  <div>Asset Count: <span className="font-semibold">{analysisData.assets?.[0]?.asset_count || 'N/A'}</span></div>
                 </div>
-                <button 
-                  onClick={() => handleViewDocuments('Call Logs')}
-                  className="text-xs px-2 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
-                >
-                  View Documents
-                </button>
-              </div>
-            ))}
+              ) : (
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                  <div>Status: <span className="font-semibold">No analysis data available</span></div>
+                </div>
+              )}
+              <button 
+                onClick={() => handleViewDocuments('Assets')}
+                className="text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+              >
+                View Documents
+              </button>
+            </div>
 
-            {/* GPS Analysis - Mock Data */}
+            <div className="bg-cyan-50 rounded p-3 border border-cyan-100">
+              <h3 className="font-semibold mb-2" style={{color: '#0891b2'}}>Payslip Analysis</h3>
+              {(loan.payslips_score && loan.payslips_score > 0) ? (
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                  <div>Credit Score: <span className="font-semibold">{loan.payslips_score || analysisData.payslip?.[0]?.credit_score || 'N/A'}%</span></div>
+                  <div>Total Value: <span className="font-semibold">KSh {(analysisData.payslip?.[0]?.net_salary || 0).toLocaleString()}</span></div>
+                  <div>Analysis Count: <span className="font-semibold">{analysisData.payslip?.length || 'N/A'}</span></div>
+                </div>
+              ) : (
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                  <div>Status: <span className="font-semibold">No analysis data available</span></div>
+                </div>
+              )}
+              <button 
+                onClick={() => handleViewDocuments('Payslip')}
+                className="text-xs px-2 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors"
+              >
+                View Documents
+              </button>
+            </div>
+
+            <div className="bg-orange-50 rounded p-3 border border-orange-100">
+              <h3 className="font-semibold mb-2" style={{color: '#f97316'}}>Call Logs Analysis</h3>
+              {(loan.call_logs_score && loan.call_logs_score > 0) ? (
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                  <div>Credit Score: <span className="font-semibold">{loan.call_logs_score || analysisData.callLogs?.[0]?.credit_score || 'N/A'}%</span></div>
+                  <div>Total Value: <span className="font-semibold">{analysisData.callLogs?.[0]?.total_calls || 'N/A'}</span></div>
+                  <div>Analysis Count: <span className="font-semibold">{analysisData.callLogs?.[0]?.unique_contacts || 'N/A'}</span></div>
+                </div>
+              ) : (
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                  <div>Status: <span className="font-semibold">No analysis data available</span></div>
+                </div>
+              )}
+              <button 
+                onClick={() => handleViewDocuments('Call Logs')}
+                className="text-xs px-2 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
+              >
+                View Documents
+              </button>
+            </div>
+
+            {/* GPS Analysis */}
             <div className="bg-red-50 rounded p-3 border border-red-100">
               <h3 className="font-semibold mb-2" style={{color: '#dc2626'}}>GPS Analysis</h3>
-              <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                <div>Credit Score: <span className="font-semibold">85%</span></div>
-                <div>Location Stability: <span className="font-semibold">High</span></div>
-                <div>Movement Pattern: <span className="font-semibold">Regular</span></div>
-              </div>
+              {(loan.gps_score || analysisData.gps?.length > 0) ? (
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                  <div>Credit Score: <span className="font-semibold">{loan.gps_score || analysisData.gps?.[0]?.credit_score || 'N/A'}%</span></div>
+                  <div>Total Value: <span className="font-semibold">{analysisData.gps?.[0]?.travel_radius || 'N/A'} km</span></div>
+                  <div>Analysis Count: <span className="font-semibold">{analysisData.gps?.length || 'N/A'}</span></div>
+                </div>
+              ) : (
+                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                  <div>Status: <span className="font-semibold">No analysis data available</span></div>
+                </div>
+              )}
               <button 
                 onClick={() => handleViewDocuments('GPS')}
                 className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
@@ -631,24 +870,87 @@ const ReviewLoan = () => {
               </div>
               
               <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-100 rounded-lg p-4 h-64 flex items-center justify-center">
-                    <div className="text-center">
-                      <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
-                      <p className="text-gray-600">Mock {selectedDocumentType} Document 1</p>
-                    </div>
+                {loadingDocuments ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-200 border-t-blue-600"></div>
+                    <span className="ml-3 text-gray-600">Loading documents...</span>
                   </div>
-                  <div className="bg-gray-100 rounded-lg p-4 h-64 flex items-center justify-center">
-                    <div className="text-center">
-                      <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                      </svg>
-                      <p className="text-gray-600">Mock {selectedDocumentType} Document 2</p>
-                    </div>
+                ) : documents.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {documents.map((doc, index) => {
+                      const bucket = selectedDocumentType === 'Assets' ? 'assets' : 
+                                   selectedDocumentType === 'GPS' ? 'assets' : 'documents';
+                      console.log('Document bucket for', selectedDocumentType, ':', bucket);
+                      console.log('Document file_url:', doc.file_url);
+                      const isMockFile = doc.file_url && doc.file_url.startsWith('mock-');
+                      const documentUrl = !isMockFile && doc.file_url ? getDocumentUrl(doc.file_url, bucket) : null;
+                      const isImage = isImageFile(doc.original_filename || doc.filename || '');
+                      
+                      return (
+                        <div key={index} className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                          <div className="aspect-video bg-gray-100 flex items-center justify-center">
+                            {documentUrl && isImage ? (
+                              <img
+                                src={documentUrl}
+                                alt={doc.original_filename || `Document ${index + 1}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div className={`flex flex-col items-center justify-center text-center p-4 ${documentUrl && isImage ? 'hidden' : 'flex'}`}>
+                              <svg className="w-12 h-12 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                              </svg>
+                              <p className="text-sm text-gray-600 font-medium">
+                                {doc.original_filename || doc.filename || `${selectedDocumentType} Document`}
+                              </p>
+                              {isMockFile && (
+                                <p className="text-xs text-red-500 mt-1">
+                                  File upload failed
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="p-3">
+                            <p className="text-xs text-gray-500 mb-2 truncate">
+                              {doc.original_filename || doc.filename || `Document ${index + 1}`}
+                            </p>
+                            <p className="text-xs text-gray-400 mb-2">
+                              Path: {doc.file_url || 'No path'}
+                            </p>
+                            {documentUrl ? (
+                              <a
+                                href={documentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                              >
+                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                                Open
+                              </a>
+                            ) : (
+                              <span className="inline-flex items-center text-xs px-2 py-1 bg-orange-500 text-white rounded">
+                                {isMockFile ? 'Upload Failed' : 'No Access'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p className="text-gray-600">No {selectedDocumentType.toLowerCase()} documents found for this application.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../api/axios";
 
 const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -30,8 +30,8 @@ const App: React.FC = () => {
     formData.append("password", password);
 
     try {
-      const response = await axios.post(
-        "http://localhost:8000/decrypt-parse-statement/",
+      const response = await api.post(
+        "/decrypt-parse-statement",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },

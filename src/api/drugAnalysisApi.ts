@@ -1,22 +1,24 @@
-import axios from 'axios';
-
-const drugAnalysisApi = axios.create({
-  baseURL: import.meta.env.VITE_DRUG_ANALYSIS_API_URL || 'https://druganalysis-zqu1.onrender.com',
-  timeout: 60000, // 60 second timeout
-});
+import api from './axios';
+import { analyzeDrugs } from './drugsAnalyzeApi';
+import { analyzePrescriptions } from './prescriptionsAnalyzeApi';
 
 export const analyzeMedicalNeeds = async (file: File, userId?: string) => {
   try {
-    const formData = new FormData();
-    formData.append('files', file);
-    formData.append('user_id', '1'); // Use integer user_id
-    
     console.log('Sending medical document to API');
-    const response = await drugAnalysisApi.post('/analyze_drugs', formData);
-    console.log('Drug analysis API success:', response.status);
-    return response.data;
+    
+    // Try prescriptions/analyze first, then drugs/analyze
+    try {
+      const prescriptionsResponse = await analyzePrescriptions(file, userId);
+      console.log('Prescriptions analysis API success');
+      return prescriptionsResponse;
+    } catch (prescriptionsError) {
+      console.log('Prescriptions endpoint failed, trying drugs endpoint');
+      const drugsResponse = await analyzeDrugs(file, userId);
+      console.log('Drugs analysis API success');
+      return drugsResponse;
+    }
   } catch (error: any) {
-    console.error('Drug analysis API error:', error);
+    console.error('Medical analysis API error:', error);
     if (error.code === 'ECONNABORTED') {
       console.error('Request timed out');
       throw new Error('Medical analysis timed out. Please try again.');
@@ -33,3 +35,5 @@ export const analyzeMedicalNeeds = async (file: File, userId?: string) => {
     throw error;
   }
 };
+
+export { analyzeDrugs, analyzePrescriptions };

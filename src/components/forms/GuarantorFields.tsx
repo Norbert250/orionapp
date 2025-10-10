@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type  { UseFormRegister, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import type { LoanFormData } from '../../types';
-import { analyzeIdDocument, type IdAnalysisResult } from '../../api/idAnalyzerApi';
+import type { IdAnalysisResult } from '../../api/idAnalyzerApi';
 
 interface GuarantorFieldsProps {
   register: UseFormRegister<LoanFormData>;
@@ -44,8 +44,15 @@ const GuarantorFields: React.FC<GuarantorFieldsProps> = ({
 
     try {
       console.log('Analyzing ID document for guarantor', index + 1);
-      const result = await analyzeIdDocument(file);
-      console.log('ID analysis result:', result);
+      // Import the API function
+      const { analyzeIdDocument } = await import('../../api/idAnalyzerApi');
+      // Generate a temporary loan ID for this analysis
+      const tempLoanId = `temp-${Date.now()}`;
+      const tempUserId = '53bf969e-f1ca-40db-a145-5b58541539c5';
+      const result = await analyzeIdDocument(file, tempUserId, tempLoanId);
+      console.log('ID analysis result:', JSON.stringify(result, null, 2));
+      console.log('Result keys:', Object.keys(result));
+      console.log('Result values:', Object.values(result));
       
       setIdAnalysis(prev => {
         const updated = [...prev];
@@ -53,8 +60,6 @@ const GuarantorFields: React.FC<GuarantorFieldsProps> = ({
         return updated;
       });
 
-      // Store file for later upload
-      result.idDocument = file;
 
       // Check if both guarantors have been processed
       const currentFiles = [...uploadedFiles];
@@ -65,9 +70,7 @@ const GuarantorFields: React.FC<GuarantorFieldsProps> = ({
         const currentAnalysis = [...idAnalysis];
         currentAnalysis[index] = result;
         
-        if (currentFiles.every(f => f !== null) && 
-            currentAnalysis.every(a => a !== null) && 
-            onProcessComplete) {
+        if (currentFiles.every(f => f !== null) && onProcessComplete) {
           onProcessComplete(currentFiles as File[]);
         }
       }, 100);
@@ -80,6 +83,14 @@ const GuarantorFields: React.FC<GuarantorFieldsProps> = ({
         updated[index] = errorMessage;
         return updated;
       });
+
+      // Still trigger onProcessComplete even if analysis fails, as long as files are uploaded
+      const currentFiles = [...uploadedFiles];
+      currentFiles[index] = file;
+      
+      if (currentFiles.every(f => f !== null) && onProcessComplete) {
+        onProcessComplete(currentFiles as File[]);
+      }
     } finally {
       setIsAnalyzing(prev => {
         const updated = [...prev];
@@ -92,15 +103,19 @@ const GuarantorFields: React.FC<GuarantorFieldsProps> = ({
   // Update form values when analysis completes
   useEffect(() => {
     idAnalysis.forEach((analysis, index) => {
-      if (analysis) {
-        setValue(`guarantors.${index}.fullName`, analysis.name || '');
-        setValue(`guarantors.${index}.nationality`, analysis.nationality || '');
-        setValue(`guarantors.${index}.idNumber`, analysis.idNumber || analysis.passportNumber || '');
+      if (analysis && analysis.fields) {
+        const name = analysis.fields['Full Name'] || '';
+        const nationality = analysis.fields['Nationality'] || '';
+        const idNumber = analysis.fields['ID Number'] || analysis.fields['Passport Number'] || '';
+        
+        setValue(`guarantors.${index}.fullName`, name);
+        setValue(`guarantors.${index}.nationality`, nationality);
+        setValue(`guarantors.${index}.idNumber`, idNumber);
       }
     });
   }, [idAnalysis, setValue]);
 
-  const allProcessed = idAnalysis.every(analysis => analysis !== null);
+  const allProcessed = uploadedFiles.every(file => file !== null);
 
   return (
     <div className="space-y-6">
@@ -156,9 +171,9 @@ const GuarantorFields: React.FC<GuarantorFieldsProps> = ({
             {idAnalysis[index] && !analysisErrors[index] && (
               <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
                 <p className="text-sm text-green-800">
-                  <strong>Name:</strong> {idAnalysis[index]?.name || 'Not found'}<br/>
-                  <strong>Nationality:</strong> {idAnalysis[index]?.nationality || 'Not found'}<br/>
-                  <strong>ID/Passport:</strong> {idAnalysis[index]?.idNumber || idAnalysis[index]?.passportNumber || 'Not found'}
+                  <strong>Name:</strong> {idAnalysis[index]?.fields?.['Full Name'] || 'Not found'}<br/>
+                  <strong>Nationality:</strong> {idAnalysis[index]?.fields?.['Nationality'] || 'Not found'}<br/>
+                  <strong>ID/Passport:</strong> {idAnalysis[index]?.fields?.['ID Number'] || idAnalysis[index]?.fields?.['Passport Number'] || 'Not found'}
                 </p>
               </div>
             )}
@@ -210,7 +225,7 @@ const GuarantorFields: React.FC<GuarantorFieldsProps> = ({
             <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
             </svg>
-            <p className="text-green-800 font-medium">All guarantor information processed successfully!</p>
+            <p className="text-green-800 font-medium">All guarantor documents uploaded successfully!</p>
           </div>
         </div>
       )}

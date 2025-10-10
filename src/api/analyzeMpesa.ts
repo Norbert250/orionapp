@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from './axios';
 
 export const analyzeMpesa = async (file: File, password: string, id?: string) => {
   // generate fake ID if not provided
@@ -9,12 +9,9 @@ export const analyzeMpesa = async (file: File, password: string, id?: string) =>
   formData.append("password", password);
   formData.append("id", fakeId);
 
-  await axios.post(
-    "https://mpesaservice.onrender.com/analyzempesa", 
-    formData,
-    { headers: { "Content-Type": "multipart/form-data" } }
-  );
+  const response = await api.post('/analyze-mpesa', formData, {
+    headers: { "Content-Type": "multipart/form-data" }
+  });
 
-  // ✅ return just an okay flag
-  return "ok";
+  return response.data;
 };

@@ -14,7 +14,7 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType)
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user] = useState<any>({
-    id: 'demo-user-123',
+    id: '53bf969e-f1ca-40db-a145-5b58541539c5',
     email: 'user@demo.com'
   })
   const [isAdmin] = useState(false)

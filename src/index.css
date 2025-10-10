@@ -202,6 +202,72 @@
   .mobile-text {
     @apply text-sm;
   }
+
+  /* Improve touch targets on mobile */
+  button, .btn, input, select, textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better spacing for mobile */
+  .mobile-spacing {
+    @apply space-y-4;
+  }
+
+  /* Larger text for better readability */
+  .mobile-heading {
+    @apply text-xl;
+  }
+
+  .mobile-subheading {
+    @apply text-lg;
+  }
+
+  /* Better modal sizing on mobile */
+  .mobile-modal {
+    @apply mx-4 max-h-[90vh] overflow-y-auto;
+  }
+
+  /* Improve form inputs on mobile */
+  .mobile-input {
+    @apply text-base; /* Prevents zoom on iOS */
+  }
+
+  /* Better card spacing */
+  .mobile-card {
+    @apply p-4 rounded-lg;
+  }
+
+  /* Improve table readability on very small screens */
+  .mobile-table {
+    font-size: 0.875rem;
+  }
+
+  /* Better button spacing */
+  .mobile-btn-group {
+    @apply flex flex-col space-y-2;
+  }
+
+  /* Improve navigation spacing */
+  .mobile-nav {
+    @apply py-3 px-4;
+  }
+}
+
+/* Medium mobile improvements */
+@media (max-width: 768px) and (min-width: 641px) {
+  .tablet-padding {
+    @apply px-6;
+  }
+
+  .tablet-text {
+    @apply text-base;
+  }
+
+  button, .btn {
+    min-height: 40px;
+    min-width: 40px;
+  }
 }
 
 /* Print styles */

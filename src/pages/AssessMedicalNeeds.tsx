@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Pill, FileText, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { analyzeMedicalNeeds } from '../api/drugAnalysisApi';
-import { analyzePrescription } from '../api/prescriptionAnalysisApi';
+import { analyzeDrugs } from '../api/drugsAnalyzeApi';
+import { analyzePrescriptions } from '../api/prescriptionsAnalyzeApi';
 
 const AssessMedicalNeeds: React.FC = () => {
   const navigate = useNavigate();
@@ -22,12 +22,7 @@ const AssessMedicalNeeds: React.FC = () => {
     const hasPrescriptions = prescriptionFiles && prescriptionFiles.length > 0;
     
     if (!hasMedicaments && !hasPrescriptions) {
-      alert('Please upload either medicament pictures OR doctor\'s prescription');
-      return;
-    }
-    
-    if (hasMedicaments && hasPrescriptions) {
-      alert('Please upload either medicament pictures OR doctor\'s prescription, not both');
+      alert('Please upload medicament pictures and/or doctor\'s prescription');
       return;
     }
 
@@ -38,18 +33,16 @@ const AssessMedicalNeeds: React.FC = () => {
       
       // Analyze medicament images if uploaded
       if (hasMedicaments) {
-        medicamentResults = await Promise.all(
-          Array.from(medicamentFiles).map(file => analyzeMedicalNeeds(file, user?.id))
-        );
-        setAnalysisResults(medicamentResults);
+        const batchResult = await analyzeDrugs(Array.from(medicamentFiles), user?.id);
+        console.log('Drugs analysis result:', batchResult);
+        setAnalysisResults([batchResult]);
       }
       
       // Analyze prescription files if uploaded
       if (hasPrescriptions) {
-        prescResults = await Promise.all(
-          Array.from(prescriptionFiles).map(file => analyzePrescription(file, user?.id))
-        );
-        setPrescriptionResults(prescResults);
+        const batchResult = await analyzePrescriptions(Array.from(prescriptionFiles), user?.id);
+        console.log('Prescription analysis result:', batchResult);
+        setPrescriptionResults([batchResult]);
       }
       
       console.log('Medical analysis results:', medicamentResults);
@@ -87,10 +80,10 @@ const AssessMedicalNeeds: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Medicaments Upload */}
-            <div className={prescriptionFiles && prescriptionFiles.length > 0 ? 'opacity-50 pointer-events-none' : ''}>
+            <div>
               <label className="block text-lg font-semibold text-card-foreground mb-4">
                 <Pill className="w-5 h-5 inline mr-2" />
-                Medicaments Pictures {prescriptionFiles && prescriptionFiles.length > 0 ? '(Disabled - Prescription uploaded)' : ''}
+                Medicaments Pictures
               </label>
               <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-colors">
                 <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -101,11 +94,6 @@ const AssessMedicalNeeds: React.FC = () => {
                   onChange={(e) => {
                     const files = e.target.files;
                     setMedicamentFiles(files);
-
-                    // Clear prescription files if medicaments are uploaded
-                    if (files && files.length > 0) {
-                      setPrescriptionFiles(null);
-                    }
 
                     if (files) {
                       const previews = Array.from(files).map(file => URL.createObjectURL(file));
@@ -144,10 +132,10 @@ const AssessMedicalNeeds: React.FC = () => {
             </div>
 
             {/* Prescription Upload */}
-            <div className={medicamentFiles && medicamentFiles.length > 0 ? 'opacity-50 pointer-events-none' : ''}>
+            <div>
               <label className="block text-lg font-semibold text-card-foreground mb-4">
                 <FileText className="w-5 h-5 inline mr-2" />
-                Doctor's Prescription {medicamentFiles && medicamentFiles.length > 0 ? '(Disabled - Medicaments uploaded)' : ''}
+                Doctor's Prescription
               </label>
               <div className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-colors">
                 <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -158,12 +146,6 @@ const AssessMedicalNeeds: React.FC = () => {
                   onChange={(e) => {
                     const files = e.target.files;
                     setPrescriptionFiles(files);
-
-                    // Clear medicament files if prescription is uploaded
-                    if (files && files.length > 0) {
-                      setMedicamentFiles(null);
-                      setMedicamentPreviews([]);
-                    }
                   }}
                   className="hidden"
                   id="prescription"
@@ -174,9 +156,31 @@ const AssessMedicalNeeds: React.FC = () => {
                   <p className="text-sm text-muted-foreground mt-2">PDF, DOC, PNG, JPG up to 10MB each</p>
                 </label>
                 {prescriptionFiles && (
-                  <p className="text-sm text-chart-2 mt-2">
-                    {prescriptionFiles.length} file(s) selected
-                  </p>
+                  <div className="mt-4">
+                    <p className="text-sm text-chart-2 mb-3">
+                      {prescriptionFiles.length} file(s) selected
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {Array.from(prescriptionFiles).map((file, index) => {
+                        const isImage = file.type.startsWith('image/');
+                        return (
+                          <div key={index} className="relative">
+                            {isImage ? (
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`Prescription ${index + 1}`}
+                                className="w-full h-20 object-cover rounded-lg border border-border"
+                              />
+                            ) : (
+                              <div className="w-full h-20 bg-muted rounded-lg border border-border flex items-center justify-center">
+                                <FileText className="w-8 h-8 text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
