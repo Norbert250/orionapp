@@ -64,6 +64,7 @@ const InformalLoanRequest: React.FC = () => {
   } = useForm<LoanFormData>({
     defaultValues: {
       sector: "informal",
+      workType: "",
       hasBankAccount: false,
       hasRetailBusiness: false,
       guarantors: [
@@ -522,6 +523,31 @@ const InformalLoanRequest: React.FC = () => {
               </p>
             </div>
             
+            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                What type of work do you do? *
+              </label>
+              <select
+                {...register("workType", { required: "Please select your work type" })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select your work type</option>
+                <option value="farmers_livestock">Farmers and Livestock</option>
+                <option value="construction_workers">Construction Workers</option>
+                <option value="gardeners_cleaners">Gardeners and Cleaners</option>
+                <option value="small_vendors">Small Vendors (Mama Mbogas)</option>
+                <option value="mtn_airtel_agents">MTN, Airtel Agents</option>
+                <option value="mototaxi_bodaboda">Mototaxi and Bodaboda Drivers</option>
+                <option value="shoe_makers_repairers">Shoe Makers and Repairers</option>
+                <option value="electronics_repairers">Electronics Repairers</option>
+                <option value="mechanicians">Mechanicians</option>
+                <option value="hair_dressers">Hair Dressers</option>
+              </select>
+              {errors.workType && (
+                <p className="text-red-500 text-sm mt-1">{errors.workType.message}</p>
+              )}
+            </div>
+            
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
               <h3 className="font-semibold text-blue-900 mb-3">What you'll need:</h3>
               <ul className="space-y-2 text-blue-800">
@@ -536,7 +562,14 @@ const InformalLoanRequest: React.FC = () => {
             
             <button
               type="button"
-              onClick={() => setStep(1)}
+              onClick={() => {
+                const workType = watch("workType");
+                if (!workType) {
+                  alert("Please select your work type before continuing");
+                  return;
+                }
+                setStep(1);
+              }}
               className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200"
             >
               Start Application
