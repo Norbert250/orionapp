@@ -165,6 +165,9 @@ const PastLoans: React.FC = () => {
                         Due Date
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Credit Score
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Applied
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -199,6 +202,9 @@ const PastLoans: React.FC = () => {
                             <Calendar className="w-4 h-4 mr-1 text-gray-400" />
                             {formatDate(loan.repayment_date)}
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">
+                          {loan.total_credit_score || 0}%
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {formatDate(loan.created_at)}

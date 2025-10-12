@@ -35,14 +35,16 @@ const AssessMedicalNeeds: React.FC = () => {
       if (hasMedicaments) {
         const batchResult = await analyzeDrugs(Array.from(medicamentFiles), user?.id);
         console.log('Drugs analysis result:', batchResult);
-        setAnalysisResults([batchResult]);
+        medicamentResults = [batchResult];
+        setAnalysisResults(medicamentResults);
       }
       
       // Analyze prescription files if uploaded
       if (hasPrescriptions) {
         const batchResult = await analyzePrescriptions(Array.from(prescriptionFiles), user?.id);
         console.log('Prescription analysis result:', batchResult);
-        setPrescriptionResults([batchResult]);
+        prescResults = [batchResult];
+        setPrescriptionResults(prescResults);
       }
       
       console.log('Medical analysis results:', medicamentResults);

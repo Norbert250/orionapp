@@ -30,7 +30,9 @@ const MedicineResults: React.FC = () => {
 
   const handleSectorSelect = (sector: 'formal' | 'informal') => {
     setShowSectorModal(false);
-    navigate(`/loan/request/${sector}`);
+    navigate(`/loan/request/${sector}`, { 
+      state: { totalCost } 
+    });
   };
 
   useEffect(() => {
@@ -128,7 +130,7 @@ const MedicineResults: React.FC = () => {
                 <span className="font-semibold text-secondary-foreground">Medicament Analysis</span>
               </div>
               <p className="text-sm text-secondary-foreground/80">
-                {medicamentResults.length} image(s) analyzed
+                {medicamentResults.reduce((count, result) => count + (result.files?.length || 0), 0)} image(s) analyzed
               </p>
             </div>
             <div className="bg-accent rounded-lg p-4">
@@ -137,7 +139,7 @@ const MedicineResults: React.FC = () => {
                 <span className="font-semibold text-accent-foreground">Prescription Analysis</span>
               </div>
               <p className="text-sm text-accent-foreground/80">
-                {prescriptionResults.length} prescription(s) analyzed
+                {prescriptionResults.reduce((count, result) => count + (result.files?.length || 0), 0)} prescription(s) analyzed
               </p>
             </div>
           </div>

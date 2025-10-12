@@ -286,6 +286,7 @@ const Dashboard = () => {
                   <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Applicant</th>
                   <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Amount</th>
                   <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Sector</th>
+                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Credit Score</th>
                   <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Date</th>
                   <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
                   <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Actions</th>
@@ -357,6 +358,11 @@ const Dashboard = () => {
                           : 'bg-green-100 text-green-800'
                       }`}>
                         {app.sector.charAt(0).toUpperCase() + app.sector.slice(1)}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-slate-800">
+                        {app.total_credit_score ? `${app.total_credit_score}%` : 'N/A'}
                       </div>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">

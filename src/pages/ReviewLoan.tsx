@@ -13,6 +13,10 @@ const ReviewLoan = () => {
   const [selectedDocumentType, setSelectedDocumentType] = useState<string>('');
   const [documents, setDocuments] = useState<any[]>([]);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedAnalysisType, setSelectedAnalysisType] = useState<string>('');
+  const [selectedAnalysisData, setSelectedAnalysisData] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
     fetchLoanDetails();
@@ -197,6 +201,85 @@ const ReviewLoan = () => {
     await fetchDocuments(documentType);
   };
 
+  const handleViewDetails = async (analysisType: string) => {
+    setSelectedAnalysisType(analysisType);
+    setSelectedAnalysisData(null);
+    setShowDetailsModal(true);
+    setLoadingDetails(true);
+    
+    try {
+      let tableData = null;
+      
+      switch (analysisType) {
+        case 'Bank Statement':
+          const { data: bankData, error: bankError } = await supabase
+            .from('bank_statement_analysis')
+            .select('*')
+            .eq('loan_id', id);
+          console.log('Bank query result:', bankData, 'Error:', bankError);
+          tableData = bankData;
+          break;
+        case 'M-Pesa':
+          const { data: mpesaData, error: mpesaError } = await supabase
+            .from('mpesa_analysis_results')
+            .select('*')
+            .eq('loan_id', id);
+          console.log('M-Pesa query result:', mpesaData, 'Error:', mpesaError);
+          tableData = mpesaData;
+          break;
+        case 'Assets':
+          const { data: assetsData, error: assetsError } = await supabase
+            .from('assets_analysis_results')
+            .select('*')
+            .eq('loan_id', id);
+          console.log('Assets query result:', assetsData, 'Error:', assetsError);
+          tableData = assetsData;
+          break;
+        case 'Payslip':
+          const { data: payslipData, error: payslipError } = await supabase
+            .from('payslip_analysis')
+            .select('*')
+            .eq('loan_id', id);
+          console.log('Payslip query result:', payslipData, 'Error:', payslipError);
+          tableData = payslipData;
+          break;
+        case 'Call Logs':
+          const { data: callLogsData, error: callLogsError } = await supabase
+            .from('call_logs_analysis')
+            .select('*')
+            .eq('loan_id', id);
+          console.log('Call Logs query result:', callLogsData, 'Error:', callLogsError);
+          tableData = callLogsData;
+          break;
+        case 'GPS':
+          const { data: gpsData, error: gpsError } = await supabase
+            .from('other_documents')
+            .select('*')
+            .eq('loan_id', id)
+            .eq('document_type', 'home_photo');
+          console.log('GPS query result:', gpsData, 'Error:', gpsError);
+          tableData = gpsData;
+          break;
+      }
+      
+      // Test query to see if any analysis data exists
+      const { data: testBank } = await supabase.from('bank_statement_analysis').select('*').order('created_at', { ascending: false }).limit(3);
+      const { data: testMpesa } = await supabase.from('mpesa_analysis_results').select('*').order('created_at', { ascending: false }).limit(3);
+      const { data: testAssets } = await supabase.from('assets_analysis_results').select('*').order('created_at', { ascending: false }).limit(3);
+      console.log('Recent bank analysis:', testBank);
+      console.log('Recent mpesa analysis:', testMpesa);
+      console.log('Recent assets analysis:', testAssets);
+      console.log('Current loan ID:', id);
+      
+      setSelectedAnalysisData(tableData || []);
+    } catch (error) {
+      console.error('Error fetching analysis details:', error);
+      setSelectedAnalysisData([]);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
   const getDocumentUrl = (path: string, bucket: string = 'documents') => {
     if (!path) return null;
     
@@ -291,8 +374,8 @@ const ReviewLoan = () => {
             </div>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <div className="flex items-center gap-3">
-                <div className="relative w-16 h-16">
-                  <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                <div className="relative w-20 h-20">
+                  <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 36 36">
                     <path
                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                       fill="none"
@@ -309,7 +392,7 @@ const ReviewLoan = () => {
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-sm font-bold" style={{color: '#005baa'}}>{loan.total_credit_score || 0}%</span>
+                    <span className="text-base font-bold" style={{color: '#005baa'}}>{loan.total_credit_score || 0}%</span>
                   </div>
                 </div>
                 <div className="text-center sm:text-left">
@@ -361,7 +444,7 @@ const ReviewLoan = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                     </svg>
                   </div>
-                  <div className="text-xl font-bold" style={{color: '#1a1a1a'}}>KSh {loan.amount?.toLocaleString()}</div>
+                  <div className="text-xl font-bold" style={{color: '#1a1a1a'}}>KSh {loan.amount_requested?.toLocaleString()}</div>
                 </div>
 
                 <div className="bg-gray-50 rounded p-3 border border-gray-100">
@@ -418,13 +501,13 @@ const ReviewLoan = () => {
                   const bankScore = loan.bank_statement_score || 0;
                   return (
                     <div className="bg-blue-50 rounded p-3 border border-blue-100 flex items-center gap-3">
-                      <div className="relative w-12 h-12">
-                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                      <div className="relative w-14 h-14">
+                        <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 36 36">
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#dbeafe" strokeWidth="2"/>
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(bankScore)} strokeWidth="2" strokeDasharray={`${bankScore}, 100`} strokeLinecap="round"/>
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-xs font-bold" style={{color: getScoreColor(bankScore)}}>{bankScore}%</span>
+                          <span className="text-sm font-bold" style={{color: getScoreColor(bankScore)}}>{bankScore}%</span>
                         </div>
                       </div>
                       <div>
@@ -439,13 +522,13 @@ const ReviewLoan = () => {
                   const mpesaScore = loan.mpesa_score || (analysisData.mpesa?.[0]?.credit_score || 0);
                   return (
                     <div className="bg-green-50 rounded p-3 border border-green-100 flex items-center gap-3">
-                      <div className="relative w-12 h-12">
-                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                      <div className="relative w-14 h-14">
+                        <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 36 36">
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#dcfce7" strokeWidth="2"/>
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(mpesaScore)} strokeWidth="2" strokeDasharray={`${mpesaScore}, 100`} strokeLinecap="round"/>
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-xs font-bold" style={{color: getScoreColor(mpesaScore)}}>{mpesaScore}%</span>
+                          <span className="text-sm font-bold" style={{color: getScoreColor(mpesaScore)}}>{mpesaScore}%</span>
                         </div>
                       </div>
                       <div>
@@ -460,13 +543,13 @@ const ReviewLoan = () => {
                   const assetsScore = loan.assets_score || (analysisData.assets?.[0]?.credit_score || 0);
                   return (
                     <div className="bg-purple-50 rounded p-3 border border-purple-100 flex items-center gap-3">
-                      <div className="relative w-12 h-12">
-                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                      <div className="relative w-14 h-14">
+                        <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 36 36">
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f3e8ff" strokeWidth="2"/>
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(assetsScore)} strokeWidth="2" strokeDasharray={`${assetsScore}, 100`} strokeLinecap="round"/>
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-xs font-bold" style={{color: getScoreColor(assetsScore)}}>{assetsScore}%</span>
+                          <span className="text-sm font-bold" style={{color: getScoreColor(assetsScore)}}>{assetsScore}%</span>
                         </div>
                       </div>
                       <div>
@@ -481,13 +564,13 @@ const ReviewLoan = () => {
                   const payslipScore = loan.payslips_score || (analysisData.payslip?.[0]?.credit_score || 0);
                   return (
                     <div className="bg-cyan-50 rounded p-3 border border-cyan-100 flex items-center gap-3">
-                      <div className="relative w-12 h-12">
-                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                      <div className="relative w-14 h-14">
+                        <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 36 36">
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#ecfeff" strokeWidth="2"/>
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(payslipScore)} strokeWidth="2" strokeDasharray={`${payslipScore}, 100`} strokeLinecap="round"/>
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-xs font-bold" style={{color: getScoreColor(payslipScore)}}>{payslipScore}%</span>
+                          <span className="text-sm font-bold" style={{color: getScoreColor(payslipScore)}}>{payslipScore}%</span>
                         </div>
                       </div>
                       <div>
@@ -502,13 +585,13 @@ const ReviewLoan = () => {
                   const callLogsScore = loan.call_logs_score || (analysisData.callLogs?.[0]?.credit_score || 0);
                   return (
                     <div className="bg-orange-50 rounded p-3 border border-orange-100 flex items-center gap-3">
-                      <div className="relative w-12 h-12">
-                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                      <div className="relative w-14 h-14">
+                        <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 36 36">
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#fff7ed" strokeWidth="2"/>
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(callLogsScore)} strokeWidth="2" strokeDasharray={`${callLogsScore}, 100`} strokeLinecap="round"/>
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-xs font-bold" style={{color: getScoreColor(callLogsScore)}}>{callLogsScore}%</span>
+                          <span className="text-sm font-bold" style={{color: getScoreColor(callLogsScore)}}>{callLogsScore}%</span>
                         </div>
                       </div>
                       <div>
@@ -523,13 +606,13 @@ const ReviewLoan = () => {
                   const gpsScore = loan.gps_score || 0;
                   return (
                     <div className="bg-red-50 rounded p-3 border border-red-100 flex items-center gap-3">
-                      <div className="relative w-12 h-12">
-                        <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                      <div className="relative w-14 h-14">
+                        <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 36 36">
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#fef2f2" strokeWidth="2"/>
                           <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={getScoreColor(gpsScore)} strokeWidth="2" strokeDasharray={`${gpsScore}, 100`} strokeLinecap="round"/>
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-xs font-bold" style={{color: getScoreColor(gpsScore)}}>{gpsScore}%</span>
+                          <span className="text-sm font-bold" style={{color: getScoreColor(gpsScore)}}>{gpsScore}%</span>
                         </div>
                       </div>
                       <div>
@@ -697,12 +780,20 @@ const ReviewLoan = () => {
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
-              <button 
-                onClick={() => handleViewDocuments('Bank Statement')}
-                className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-              >
-                View Documents
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleViewDocuments('Bank Statement')}
+                  className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  View Documents
+                </button>
+                <button 
+                  onClick={() => handleViewDetails('Bank Statement')}
+                  className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  See Details
+                </button>
+              </div>
             </div>
 
             <div className="bg-green-50 rounded p-3 border border-green-100">
@@ -718,12 +809,20 @@ const ReviewLoan = () => {
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
-              <button 
-                onClick={() => handleViewDocuments('M-Pesa')}
-                className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-              >
-                View Documents
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleViewDocuments('M-Pesa')}
+                  className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                >
+                  View Documents
+                </button>
+                <button 
+                  onClick={() => handleViewDetails('M-Pesa')}
+                  className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  See Details
+                </button>
+              </div>
             </div>
 
             <div className="bg-purple-50 rounded p-3 border border-purple-100">
@@ -739,12 +838,20 @@ const ReviewLoan = () => {
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
-              <button 
-                onClick={() => handleViewDocuments('Assets')}
-                className="text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-              >
-                View Documents
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleViewDocuments('Assets')}
+                  className="text-xs px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                >
+                  View Documents
+                </button>
+                <button 
+                  onClick={() => handleViewDetails('Assets')}
+                  className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  See Details
+                </button>
+              </div>
             </div>
 
             <div className="bg-cyan-50 rounded p-3 border border-cyan-100">
@@ -760,12 +867,20 @@ const ReviewLoan = () => {
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
-              <button 
-                onClick={() => handleViewDocuments('Payslip')}
-                className="text-xs px-2 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors"
-              >
-                View Documents
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleViewDocuments('Payslip')}
+                  className="text-xs px-2 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors"
+                >
+                  View Documents
+                </button>
+                <button 
+                  onClick={() => handleViewDetails('Payslip')}
+                  className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  See Details
+                </button>
+              </div>
             </div>
 
             <div className="bg-orange-50 rounded p-3 border border-orange-100">
@@ -781,12 +896,20 @@ const ReviewLoan = () => {
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
-              <button 
-                onClick={() => handleViewDocuments('Call Logs')}
-                className="text-xs px-2 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
-              >
-                View Documents
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleViewDocuments('Call Logs')}
+                  className="text-xs px-2 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
+                >
+                  View Documents
+                </button>
+                <button 
+                  onClick={() => handleViewDetails('Call Logs')}
+                  className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  See Details
+                </button>
+              </div>
             </div>
 
             {/* GPS Analysis */}
@@ -803,12 +926,20 @@ const ReviewLoan = () => {
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
-              <button 
-                onClick={() => handleViewDocuments('GPS')}
-                className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-              >
-                View Documents
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleViewDocuments('GPS')}
+                  className="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                >
+                  View Documents
+                </button>
+                <button 
+                  onClick={() => handleViewDetails('GPS')}
+                  className="text-xs px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  See Details
+                </button>
+              </div>
             </div>
 
             {/* Show message if no analysis data */}
@@ -850,6 +981,49 @@ const ReviewLoan = () => {
             </button>
           </div>
         </div>
+
+        {/* Details Modal */}
+        {showDetailsModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 rounded-t-2xl">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-gray-900">{selectedAnalysisType} Analysis Details</h3>
+                  <button
+                    onClick={() => setShowDetailsModal(false)}
+                    className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                {loadingDetails ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-200 border-t-blue-600"></div>
+                    <span className="ml-3 text-gray-600">Loading analysis details...</span>
+                  </div>
+                ) : selectedAnalysisData && Array.isArray(selectedAnalysisData) && selectedAnalysisData.length > 0 ? (
+                  <div className="bg-gray-50 rounded-lg p-4 border">
+                    <pre className="text-sm text-gray-800 whitespace-pre-wrap overflow-x-auto">
+                      {JSON.stringify(selectedAnalysisData, null, 2)}
+                    </pre>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p className="text-gray-600">No analysis data found in {selectedAnalysisType.toLowerCase()} table for this loan.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Document Modal */}
         {showDocumentModal && (

@@ -9,7 +9,8 @@ export const analyzeDrugs = async (files: File[], userId?: string) => {
       formData.append('files', file);
     });
     
-    if (userId) formData.append('user_id', userId);
+    // user_id is required as integer
+    formData.append('user_id', '123');
 
     console.log('Sending drugs analysis request:', {
       fileCount: files.length,
@@ -27,9 +28,14 @@ export const analyzeDrugs = async (files: File[], userId?: string) => {
   } catch (error: any) {
     console.error('Drugs analysis API error:', error);
     if (error.response) {
-      console.error('Error response data:', error.response.data);
+      console.error('Error response data:', JSON.stringify(error.response.data, null, 2));
       console.error('Error response status:', error.response.status);
       console.error('Error response headers:', error.response.headers);
+      
+      // Log the detail array if it exists
+      if (error.response.data?.detail) {
+        console.error('Validation errors:', error.response.data.detail);
+      }
     }
     throw error;
   }

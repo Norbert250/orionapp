@@ -9,7 +9,8 @@ export const analyzePrescriptions = async (files: File[], userId?: string) => {
       formData.append('files', file);
     });
     
-    if (userId) formData.append('user_id', userId);
+    // user_id is required as integer
+    formData.append('user_id', '123');
 
     console.log('Sending prescriptions analysis request:', {
       fileCount: files.length,

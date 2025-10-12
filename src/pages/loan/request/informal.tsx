@@ -2,11 +2,13 @@ import { analyzeAndScoreAssets } from "../../../api/assetsAnalysisApi";
 import { analyzeGpsImages, calculateGpsScoreAfterAssets } from "../../../api/gpsAnalysisApi";
 import { analyzeCallLogs } from "../../../api/callLogsApi";
 import { analyzeIdDocument } from "../../../api/idAnalyzerApi";
+import { analyzeDrugs } from "../../../api/drugsAnalyzeApi";
+import { analyzePrescriptions } from "../../../api/prescriptionsAnalyzeApi";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Heart, Upload, FileText, Users, CheckCircle, AlertCircle, Camera, Building2 } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
 import type { Asset, LoanFormData } from "../../../types";
@@ -18,6 +20,7 @@ import ProgressSteps from "../../../components/ui/progressBar";
 
 const InformalLoanRequest: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const steps = ["Instructions", "Assets", "Documents", "Loan Details"];
@@ -29,6 +32,7 @@ const InformalLoanRequest: React.FC = () => {
   const [guarantorsProcessing, setGuarantorsProcessing] = useState(false);
   const [guarantorsProcessed, setGuarantorsProcessed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [medicalProcessing, setMedicalProcessing] = useState(false);
 
   // File states
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -37,6 +41,8 @@ const InformalLoanRequest: React.FC = () => {
   const [bankStatements, setBankStatements] = useState<File[]>([]);
   const [mpesaStatements, setMpesaStatements] = useState<File[]>([]);
   const [callLogs, setCallLogs] = useState<File[]>([]);
+  const [medicalDrugFiles, setMedicalDrugFiles] = useState<File[]>([]);
+  const [medicalPrescriptionFiles, setMedicalPrescriptionFiles] = useState<File[]>([]);
 
   // Processing results
   const [assetResults, setAssetResults] = useState<any[]>([]);
@@ -69,6 +75,40 @@ const InformalLoanRequest: React.FC = () => {
 
   const hasRetailBusiness = watch("hasRetailBusiness");
   const hasBankAccount = watch("hasBankAccount");
+
+  // Auto-fill loan amount from medical assessment
+  useEffect(() => {
+    const state = location.state as { totalCost?: number };
+    if (state?.totalCost) {
+      setValue("amountRequested", state.totalCost);
+    }
+  }, [location.state, setValue]);
+
+  // Process Medical Assessment
+  const processMedicalAssessment = async () => {
+    setMedicalProcessing(true);
+    try {
+      let totalCost = 0;
+      
+      if (medicalDrugFiles.length > 0) {
+        const drugResult = await analyzeDrugs(medicalDrugFiles, user?.id);
+        totalCost += drugResult.total_estimated_price_all_drugs || 0;
+      }
+      
+      if (medicalPrescriptionFiles.length > 0) {
+        const prescriptionResult = await analyzePrescriptions(medicalPrescriptionFiles, user?.id);
+        totalCost += prescriptionResult.total_estimated_price_all_files || 0;
+      }
+      
+      setValue("amountRequested", totalCost);
+      alert(`Medical assessment complete! Estimated cost: KSH ${totalCost.toLocaleString()}`);
+    } catch (error) {
+      console.error('Medical assessment error:', error);
+      alert('Medical assessment failed. Please try again.');
+    } finally {
+      setMedicalProcessing(false);
+    }
+  };
 
   // Step 1: Process Assets
   const processAssets = async () => {
@@ -740,24 +780,72 @@ const InformalLoanRequest: React.FC = () => {
               <p className="text-gray-600">Complete your loan application</p>
             </div>
 
-            {/* Loan Amount */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Loan Amount Requested (KSH) *
+            {/* Loan Amount Options */}
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                How would you like to determine your loan amount? *
               </label>
-              <input
-                type="number"
-                {...register("amountRequested", {
-                  required: "Loan amount is required",
-                  min: { value: 1000, message: "Minimum loan amount is KSH 1,000" },
-                  max: { value: 1000000, message: "Maximum loan amount is KSH 1,000,000" }
-                })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., 50000"
-              />
-              {errors.amountRequested && (
-                <p className="text-red-500 text-sm mt-1">{errors.amountRequested.message}</p>
-              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Manual Amount Entry */}
+                <div className="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-400 transition-colors">
+                  <h3 className="font-semibold text-gray-900 mb-2">Enter Amount Manually</h3>
+                  <input
+                    type="number"
+                    {...register("amountRequested", {
+                      min: { value: 1000, message: "Minimum loan amount is KSH 1,000" },
+                      max: { value: 1000000, message: "Maximum loan amount is KSH 1,000,000" }
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., 50000"
+                  />
+                  {errors.amountRequested && (
+                    <p className="text-red-500 text-sm mt-1">{errors.amountRequested.message}</p>
+                  )}
+                </div>
+                
+                {/* Medical Assessment Option */}
+                <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                  <h3 className="font-semibold text-blue-900 mb-2 flex items-center">
+                    <Heart className="w-4 h-4 mr-2" />
+                    Medical Needs Assessment
+                  </h3>
+                  <p className="text-sm text-blue-700 mb-3">
+                    Upload medical documents to get an estimated loan amount.
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-blue-700 mb-1">Drug Photos</label>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => setMedicalDrugFiles(Array.from(e.target.files || []))}
+                        className="w-full text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-blue-100 file:text-blue-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-blue-700 mb-1">Prescriptions</label>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*,.pdf"
+                        onChange={(e) => setMedicalPrescriptionFiles(Array.from(e.target.files || []))}
+                        className="w-full text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-blue-100 file:text-blue-700"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={processMedicalAssessment}
+                      disabled={medicalProcessing || (medicalDrugFiles.length === 0 && medicalPrescriptionFiles.length === 0)}
+                      className="w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    >
+                      {medicalProcessing ? 'Processing...' : 'Calculate Amount'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Repayment Date */}
