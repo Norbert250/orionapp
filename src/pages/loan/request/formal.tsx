@@ -66,6 +66,7 @@ const FormalLoanRequest: React.FC = () => {
   } = useForm<LoanFormData>({
     defaultValues: {
       sector: "formal",
+      workType: "",
       hasBankAccount: true,
       hasRetailBusiness: false,
       payslipPasswords: [],
@@ -563,6 +564,29 @@ const FormalLoanRequest: React.FC = () => {
               </p>
             </div>
             
+            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                What is your profession? *
+              </label>
+              <select
+                {...register("workType", { required: "Please select your profession" })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select your profession</option>
+                <option value="teacher">Teacher</option>
+                <option value="doctor">Doctor</option>
+                <option value="nurse">Nurse</option>
+                <option value="police_officer">Police Officer</option>
+                <option value="driver">Driver</option>
+                <option value="farmer">Farmer</option>
+                <option value="secretary">Secretary</option>
+                <option value="cleaner">Cleaner</option>
+              </select>
+              {errors.workType && (
+                <p className="text-red-500 text-sm mt-1">{errors.workType.message}</p>
+              )}
+            </div>
+            
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
               <h3 className="font-semibold text-blue-900 mb-3">Required Documents:</h3>
               <ul className="space-y-2 text-blue-800">
@@ -589,7 +613,14 @@ const FormalLoanRequest: React.FC = () => {
             
             <button
               type="button"
-              onClick={() => setStep(1)}
+              onClick={() => {
+                const workType = watch("workType");
+                if (!workType) {
+                  alert("Please select your profession before continuing");
+                  return;
+                }
+                setStep(1);
+              }}
               className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200"
             >
               I Understand - Continue
