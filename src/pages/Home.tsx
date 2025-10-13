@@ -133,17 +133,17 @@ const Home: React.FC = () => {
           )}
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 px-4">
-            <button
-              onClick={() => setShowSectorModal(true)}
-              className="bg-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-blue-700 transition-colors shadow-lg flex items-center justify-center min-h-[44px]"
-            >
-              {user ? 'Apply for New Loan' : 'Apply for Loan'}
-              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
-            </button>
+          <div className="mb-8 sm:mb-12 px-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-3">
+              <button
+                onClick={() => setShowSectorModal(true)}
+                className="bg-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-blue-700 transition-colors shadow-lg flex items-center justify-center min-h-[44px]"
+              >
+                {user ? 'Apply for New Loan' : 'Apply for Loan'}
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+              </button>
 
-            {user && (
-              <>
+              {user && (
                 <button
                   onClick={() => navigate('/loan/pay')}
                   className="border-2 border-blue-600 text-blue-600 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-center min-h-[44px]"
@@ -151,7 +151,11 @@ const Home: React.FC = () => {
                   <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Pay Existing Loan
                 </button>
-
+              )}
+            </div>
+            
+            {user && (
+              <div className="flex justify-center">
                 <button
                   onClick={() => navigate('/assess-medical-needs')}
                   className="bg-white text-gray-700 border border-gray-300 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-gray-50 transition-colors flex items-center justify-center min-h-[44px]"
@@ -159,7 +163,7 @@ const Home: React.FC = () => {
                   <Stethoscope className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Assess Medical Needs
                 </button>
-              </>
+              </div>
             )}
           </div>
 
@@ -176,27 +180,27 @@ const Home: React.FC = () => {
           )}
 
           {/* Stats & Features */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 lg:gap-6 max-w-2xl sm:max-w-4xl mx-auto px-4">
-            <div className="text-center p-2 sm:p-4 bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-gray-100 shadow-soft card-hover">
-              <div className="w-6 h-6 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-teal-600 rounded-md sm:rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-3">
-                <CheckCircle className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
+          <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-6 lg:gap-8 max-w-2xl sm:max-w-4xl mx-auto px-4">
+            <div className="text-center p-2 sm:p-6 bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-gray-100 shadow-soft card-hover">
+              <div className="w-6 h-6 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-teal-600 rounded-md sm:rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-4">
+                <CheckCircle className="w-3 h-3 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="text-sm sm:text-xl font-bold gradient-text mb-0.5 sm:mb-1">15K+</div>
-              <div className="text-gray-600 text-xs sm:text-sm leading-tight">Applications</div>
+              <div className="text-sm sm:text-2xl font-bold gradient-text mb-0.5 sm:mb-2">15K+</div>
+              <div className="text-gray-600 text-xs sm:text-sm leading-tight">Applications<span className="hidden sm:inline"> Processed</span></div>
             </div>
-            <div className="text-center p-2 sm:p-4 bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-gray-100 shadow-soft card-hover">
-              <div className="w-6 h-6 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-md sm:rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-3">
-                <DollarSign className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
+            <div className="text-center p-2 sm:p-6 bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-gray-100 shadow-soft card-hover">
+              <div className="w-6 h-6 sm:w-12 sm:h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-md sm:rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-4">
+                <DollarSign className="w-3 h-3 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="text-sm sm:text-xl font-bold text-green-600 mb-0.5 sm:mb-1">$75M+</div>
-              <div className="text-gray-600 text-xs sm:text-sm leading-tight">Disbursed</div>
+              <div className="text-sm sm:text-2xl font-bold text-green-600 mb-0.5 sm:mb-2">$75M+</div>
+              <div className="text-gray-600 text-xs sm:text-sm leading-tight">Loans<span className="hidden sm:inline"> Disbursed</span></div>
             </div>
-            <div className="text-center p-2 sm:p-4 bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-gray-100 shadow-soft card-hover">
-              <div className="w-6 h-6 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-md sm:rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-3">
-                <Clock className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
+            <div className="text-center p-2 sm:p-6 bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-gray-100 shadow-soft card-hover sm:col-span-2 lg:col-span-1">
+              <div className="w-6 h-6 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-md sm:rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-4">
+                <Clock className="w-3 h-3 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="text-sm sm:text-xl font-bold text-purple-600 mb-0.5 sm:mb-1">2 min</div>
-              <div className="text-gray-600 text-xs sm:text-sm leading-tight">Approval</div>
+              <div className="text-sm sm:text-2xl font-bold text-purple-600 mb-0.5 sm:mb-2">2 min</div>
+              <div className="text-gray-600 text-xs sm:text-sm leading-tight">Average Approval</div>
             </div>
           </div>
         </div>
