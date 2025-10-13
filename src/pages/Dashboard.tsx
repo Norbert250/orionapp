@@ -210,14 +210,14 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 sm:p-4 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{color: '#333333'}}>Total Applications</p>
-                <p className="text-lg font-bold" style={{color: '#333333'}}>{stats.total}</p>
+                <p className="text-lg sm:text-xl font-bold" style={{color: '#333333'}}>{stats.total}</p>
               </div>
-              <div className="p-2 rounded shadow group-hover:scale-110 transition-transform" style={{backgroundColor: '#005baa'}}>
+              <div className="p-2 rounded shadow group-hover:scale-110 transition-transform ml-2" style={{backgroundColor: '#005baa'}}>
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
@@ -225,13 +225,13 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 sm:p-4 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{color: '#666666'}}>Pending Review</p>
-                <p className="text-lg font-bold" style={{color: '#F39C12'}}>{stats.pending}</p>
+                <p className="text-lg sm:text-xl font-bold" style={{color: '#F39C12'}}>{stats.pending}</p>
               </div>
-              <div className="p-2 rounded shadow group-hover:scale-110 transition-transform" style={{backgroundColor: '#F39C12'}}>
+              <div className="p-2 rounded shadow group-hover:scale-110 transition-transform ml-2" style={{backgroundColor: '#F39C12'}}>
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
@@ -239,13 +239,13 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 sm:p-4 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{color: '#666666'}}>Approved</p>
-                <p className="text-lg font-bold text-emerald-600">{stats.approved}</p>
+                <p className="text-lg sm:text-xl font-bold text-emerald-600">{stats.approved}</p>
               </div>
-              <div className="p-2 rounded shadow group-hover:scale-110 transition-transform bg-emerald-500">
+              <div className="p-2 rounded shadow group-hover:scale-110 transition-transform ml-2 bg-emerald-500">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
@@ -253,13 +253,13 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
+          <div className="group bg-white rounded-lg shadow-md hover:shadow-lg p-3 sm:p-4 border border-gray-200 transform hover:-translate-y-1 transition-all duration-300">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{color: '#666666'}}>Rejected</p>
-                <p className="text-lg font-bold text-red-600">{stats.rejected}</p>
+                <p className="text-lg sm:text-xl font-bold text-red-600">{stats.rejected}</p>
               </div>
-              <div className="p-2 rounded shadow group-hover:scale-110 transition-transform bg-red-500">
+              <div className="p-2 rounded shadow group-hover:scale-110 transition-transform ml-2 bg-red-500">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
@@ -269,10 +269,10 @@ const Dashboard = () => {
         </div>
 
         <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 overflow-hidden w-full">
-          <div className="px-4 py-3 border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-blue-50">
+          <div className="px-3 sm:px-4 py-3 border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-blue-50">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-slate-800">Recent Applications</h2>
+                <h2 className="text-base sm:text-lg font-bold text-slate-800">Recent Applications</h2>
                 <p className="text-slate-600 text-xs">Review and manage loan applications</p>
               </div>
             </div>
@@ -281,18 +281,18 @@ const Dashboard = () => {
           {/* Mobile Card Layout */}
           <div className="md:hidden">
             {filteredApplications.map((app, index) => (
-              <div key={app.id} className="border-b border-gray-100 p-4 hover:bg-gray-50">
+              <div key={app.id} className="border-b border-gray-100 p-3 sm:p-4 hover:bg-gray-50">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">{index + 1}</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold text-xs sm:text-sm">{index + 1}</span>
                     </div>
-                    <div>
-                      <div className="text-sm font-semibold text-gray-900">{app.user_name}</div>
-                      <div className="text-xs text-gray-500">{app.user_email?.split('@')[0]}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-gray-900 truncate">{app.user_name}</div>
+                      <div className="text-xs text-gray-500 truncate">{app.user_email?.split('@')[0]}</div>
                     </div>
                   </div>
-                  <div className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  <div className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${
                     app.status === 'approved' ? 'bg-green-100 text-green-800' :
                     app.status === 'rejected' ? 'bg-red-100 text-red-800' :
                     'bg-yellow-100 text-yellow-800'
@@ -300,30 +300,30 @@ const Dashboard = () => {
                     {app.status}
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 text-sm">
                   <div>
-                    <span className="text-gray-500">Amount:</span>
+                    <span className="text-gray-500 text-xs">Amount:</span>
                     <div className="font-semibold">${app.amount_requested.toLocaleString()}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">Sector:</span>
+                    <span className="text-gray-500 text-xs">Sector:</span>
                     <div className="font-semibold capitalize">{app.sector}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">Credit Score:</span>
+                    <span className="text-gray-500 text-xs">Credit Score:</span>
                     <div className="font-semibold">{app.total_credit_score || 0}%</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">Date:</span>
-                    <div className="font-semibold">{new Date(app.created_at).toLocaleDateString()}</div>
+                    <span className="text-gray-500 text-xs">Date:</span>
+                    <div className="font-semibold text-xs">{new Date(app.created_at).toLocaleDateString()}</div>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <button
                     onClick={() => navigate(`/review/${app.id}`)}
-                    className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                    className="flex-1 bg-blue-600 text-white py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors min-h-[36px] sm:min-h-[44px]"
                   >
                     Review
                   </button>
@@ -332,14 +332,14 @@ const Dashboard = () => {
                       <button
                         onClick={() => updateStatus(app.id, 'approved')}
                         disabled={updatingStatus === app.id}
-                        className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                        className="flex-1 bg-green-600 text-white py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 min-h-[36px] sm:min-h-[44px]"
                       >
                         {updatingStatus === app.id ? '...' : 'Approve'}
                       </button>
                       <button
                         onClick={() => updateStatus(app.id, 'rejected')}
                         disabled={updatingStatus === app.id}
-                        className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                        className="flex-1 bg-red-600 text-white py-2 sm:py-3 px-3 sm:px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 min-h-[36px] sm:min-h-[44px]"
                       >
                         {updatingStatus === app.id ? '...' : 'Reject'}
                       </button>
@@ -355,25 +355,25 @@ const Dashboard = () => {
             <table className="min-w-full">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">ID</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Applicant</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Amount</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Sector</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Credit Score</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Date</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Actions</th>
+                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">ID</th>
+                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Applicant</th>
+                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Amount</th>
+                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Sector</th>
+                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Credit Score</th>
+                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Date</th>
+                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
+                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredApplications.map((app, index) => (
                   <tr key={app.id} className="hover:bg-slate-50/80 transition-all duration-300 group">
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-2 sm:px-3 py-2 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-500 rounded flex items-center justify-center">
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-blue-500 to-indigo-500 rounded flex items-center justify-center">
                           <span className="text-white font-bold text-xs">{index + 1}</span>
                         </div>
-                        <span className="font-mono text-xs text-slate-600">{app.id.slice(0, 6)}...</span>
+                        <span className="font-mono text-xs text-slate-600 hidden sm:inline">{app.id.slice(0, 6)}...</span>
                         <button
                           onClick={() => copyToClipboard(app.id)}
                           className="p-1 rounded hover:bg-gray-100 transition-colors"
@@ -391,17 +391,17 @@ const Dashboard = () => {
                         </button>
                       </div>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-2 sm:px-3 py-2 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-6 w-6 rounded bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                        <div className="h-5 w-5 sm:h-6 sm:w-6 rounded bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
                           <span className="text-white font-bold text-xs">
                             {app.user_name?.charAt(0).toUpperCase() || 'U'}
                           </span>
                         </div>
-                        <div className="ml-2">
-                          <div className="text-xs font-semibold text-slate-800">{app.user_name}</div>
+                        <div className="ml-2 min-w-0">
+                          <div className="text-xs font-semibold text-slate-800 truncate">{app.user_name}</div>
                           <div className="flex items-center gap-1">
-                            <div className="text-xs text-slate-500">{app.user_email?.split('@')[0]}</div>
+                            <div className="text-xs text-slate-500 truncate">{app.user_email?.split('@')[0]}</div>
                             <button
                               onClick={() => copyEmailToClipboard(app.user_email || '')}
                               className="p-1 rounded hover:bg-gray-100 transition-colors"
@@ -421,10 +421,10 @@ const Dashboard = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-2 sm:px-3 py-2 whitespace-nowrap">
                       <div className="text-sm font-bold text-slate-800">${app.amount_requested.toLocaleString()}</div>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-2 sm:px-3 py-2 whitespace-nowrap">
                       <div className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded ${
                         app.sector === 'formal'
                           ? 'bg-blue-100 text-blue-800'
@@ -433,12 +433,12 @@ const Dashboard = () => {
                         {app.sector.charAt(0).toUpperCase() + app.sector.slice(1)}
                       </div>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-2 sm:px-3 py-2 whitespace-nowrap">
                       <div className="text-sm font-semibold text-slate-800">
                         {app.total_credit_score ? `${app.total_credit_score}%` : 'N/A'}
                       </div>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-2 sm:px-3 py-2 whitespace-nowrap">
                       <div className="text-xs font-medium text-slate-700">
                         {new Date(app.created_at).toLocaleDateString('en-US', {
                           month: 'short',
@@ -446,7 +446,7 @@ const Dashboard = () => {
                         })}
                       </div>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-2 sm:px-3 py-2 whitespace-nowrap">
                       <div className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded ${
                         app.status === 'approved'
                           ? 'bg-emerald-100 text-emerald-800'
@@ -457,11 +457,11 @@ const Dashboard = () => {
                         {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
                       </div>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    <td className="px-2 sm:px-3 py-2 whitespace-nowrap">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => navigate(`/review/${app.id}`)}
-                          className="text-white px-3 py-1 rounded text-xs font-medium transition-colors"
+                          className="text-white px-2 sm:px-3 py-1 rounded text-xs font-medium transition-colors"
                           style={{backgroundColor: '#005baa'}}
                         >
                           Review
@@ -471,7 +471,7 @@ const Dashboard = () => {
                             <button
                               onClick={() => updateStatus(app.id, 'approved')}
                               disabled={updatingStatus === app.id}
-                              className="text-white px-3 py-1 rounded text-xs font-medium transition-colors"
+                              className="text-white px-2 sm:px-3 py-1 rounded text-xs font-medium transition-colors"
                               style={{backgroundColor: updatingStatus === app.id ? '#cccccc' : '#2ecc71'}}
                             >
                               {updatingStatus === app.id ? '...' : 'Approve'}
@@ -479,7 +479,7 @@ const Dashboard = () => {
                             <button
                               onClick={() => updateStatus(app.id, 'rejected')}
                               disabled={updatingStatus === app.id}
-                              className="text-white px-3 py-1 rounded text-xs font-medium transition-colors"
+                              className="text-white px-2 sm:px-3 py-1 rounded text-xs font-medium transition-colors"
                               style={{backgroundColor: updatingStatus === app.id ? '#cccccc' : '#e74c3c'}}
                             >
                               {updatingStatus === app.id ? '...' : 'Reject'}

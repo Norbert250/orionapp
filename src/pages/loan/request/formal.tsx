@@ -733,7 +733,7 @@ const FormalLoanRequest: React.FC = () => {
                 <input
                   type="checkbox"
                   {...register("hasRetailBusiness")}
-                  className="h-5 w-5 text-blue-600 focus:ring-blue-500 focus:ring-2 border-2 border-gray-300 rounded-md bg-white checked:bg-blue-600 checked:border-blue-600 flex-shrink-0 transition-colors"
+                  className="h-2 w-2 sm:h-2 sm:w-2 lg:h-5 lg:w-5 text-blue-600 focus:ring-blue-500 focus:ring-2 border-2 border-gray-300 rounded bg-white checked:bg-blue-600 checked:border-blue-600 flex-shrink-0 transition-colors"
                 />
                 <span className="text-sm font-medium text-gray-700">
                   I own a retail business
