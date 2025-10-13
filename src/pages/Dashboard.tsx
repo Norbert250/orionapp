@@ -278,6 +278,79 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Mobile Card Layout */}
+          <div className="md:hidden">
+            {filteredApplications.map((app, index) => (
+              <div key={app.id} className="border-b border-gray-100 p-4 hover:bg-gray-50">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">{index + 1}</span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">{app.user_name}</div>
+                      <div className="text-xs text-gray-500">{app.user_email?.split('@')[0]}</div>
+                    </div>
+                  </div>
+                  <div className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    app.status === 'approved' ? 'bg-green-100 text-green-800' :
+                    app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {app.status}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                  <div>
+                    <span className="text-gray-500">Amount:</span>
+                    <div className="font-semibold">${app.amount_requested.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Sector:</span>
+                    <div className="font-semibold capitalize">{app.sector}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Credit Score:</span>
+                    <div className="font-semibold">{app.total_credit_score || 0}%</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Date:</span>
+                    <div className="font-semibold">{new Date(app.created_at).toLocaleDateString()}</div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => navigate(`/review/${app.id}`)}
+                    className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Review
+                  </button>
+                  {app.status === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => updateStatus(app.id, 'approved')}
+                        disabled={updatingStatus === app.id}
+                        className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                      >
+                        {updatingStatus === app.id ? '...' : 'Approve'}
+                      </button>
+                      <button
+                        onClick={() => updateStatus(app.id, 'rejected')}
+                        disabled={updatingStatus === app.id}
+                        className="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                      >
+                        {updatingStatus === app.id ? '...' : 'Reject'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table Layout */}
           <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full">
               <thead>

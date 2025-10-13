@@ -611,7 +611,7 @@ const InformalLoanRequest: React.FC = () => {
                 }
                 setStep(1);
               }}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200"
+              className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 text-base sm:text-lg"
             >
               Start Application
             </button>
@@ -702,11 +702,11 @@ const InformalLoanRequest: React.FC = () => {
               </div>
             )}
 
-            <div className="flex space-x-4">
+            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
               <button
                 type="button"
                 onClick={() => setStep(0)}
-                className="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                className="w-full sm:flex-1 bg-gray-200 text-gray-700 py-4 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-base"
               >
                 Back
               </button>
@@ -714,7 +714,7 @@ const InformalLoanRequest: React.FC = () => {
                 type="button"
                 onClick={processAssets}
                 disabled={assetsProcessing || assets.length < 3 || homeFloorPhoto.length === 0}
-                className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                className="w-full sm:flex-1 bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 text-base"
               >
                 {assetsProcessing ? (
                   <div className="flex items-center justify-center">
@@ -999,14 +999,14 @@ const InformalLoanRequest: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-blue-600 mb-2">
+          <div className="text-center mb-4 sm:mb-8">
+            <h1 className="text-xl sm:text-3xl font-bold text-blue-600 mb-2">
               Informal Sector Loan Application
             </h1>
-            <p className="text-gray-600">
+            <p className="text-sm sm:text-base text-gray-600">
               Complete your loan application in simple steps
             </p>
           </div>
@@ -1015,8 +1015,8 @@ const InformalLoanRequest: React.FC = () => {
           <ProgressSteps currentStep={step} steps={steps} />
 
           {/* Main Form */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-            <form onSubmit={handleSubmit(onSubmit)} className="p-6 sm:p-8">
+          <div className="bg-white rounded-lg sm:rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 lg:p-8">
               {renderStepContent()}
             </form>
           </div>
