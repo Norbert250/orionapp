@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const assetsApi = axios.create({
-  baseURL: 'https://157.245.20.199:8000',
+  baseURL: process.env.NODE_ENV === 'production' ? '/api/assets' : 'http://157.245.20.199:8000',
   headers: {
     'Content-Type': 'multipart/form-data',
   },
