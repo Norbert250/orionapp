@@ -675,7 +675,7 @@ const InformalLoanRequest: React.FC = () => {
                 <input
                   type="checkbox"
                   {...register("hasRetailBusiness")}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0"
                 />
                 <span className="text-sm font-medium text-gray-700">
                   I have a retail business
@@ -702,7 +702,7 @@ const InformalLoanRequest: React.FC = () => {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+            <div className="flex flex-row space-x-4">
               <button
                 type="button"
                 onClick={() => setStep(0)}
@@ -744,7 +744,7 @@ const InformalLoanRequest: React.FC = () => {
                 <input
                   type="checkbox"
                   {...register("hasBankAccount")}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0"
                 />
                 <span className="text-sm font-medium text-gray-700">
                   I have a bank account
