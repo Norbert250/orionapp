@@ -100,32 +100,32 @@ const Home: React.FC = () => {
       )}
 
       {/* Hero Section */}
-      <section className="py-12 sm:py-20 animate-fade-in">
+      <section className="py-12 sm:py-20 lg:py-32 animate-fade-in">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {user ? (
             /* Authenticated User Dashboard */
-            <div className="text-center mb-8 sm:mb-12">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-lg">
-                <Heart className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 lg:mb-8 shadow-lg">
+                <Heart className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-white" />
               </div>
-              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">
+              <h1 className="text-2xl sm:text-4xl lg:text-6xl font-bold text-gray-900 mb-3 sm:mb-4 lg:mb-6">
                 Welcome back, <span className="text-blue-600">{user.email?.split('@')[0]}</span>
               </h1>
-              <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto px-2">
+              <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 max-w-3xl mx-auto px-2">
                 Ready to apply for a loan or manage your existing applications?
               </p>
             </div>
           ) : (
             /* Public Hero */
-            <div className="text-center mb-8 sm:mb-12">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-lg">
-                <Heart className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 lg:mb-8 shadow-lg">
+                <Heart className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-white" />
               </div>
-              <h1 className="text-2xl sm:text-4xl lg:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
+              <h1 className="text-2xl sm:text-4xl lg:text-7xl font-bold text-gray-900 mb-4 sm:mb-6 lg:mb-8">
                 Quick Loans for
                 <span className="block text-blue-600">Every Need</span>
               </h1>
-              <p className="text-base sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed px-2">
+              <p className="text-base sm:text-xl lg:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed px-2">
                 Get the financial support you need with our fast, secure loan application process.
                 Tailored for both formal and informal sector workers.
               </p>
@@ -133,31 +133,31 @@ const Home: React.FC = () => {
           )}
 
           {/* Action Buttons */}
-          <div className="mb-8 sm:mb-12 px-4">
+          <div className="mb-8 sm:mb-12 lg:mb-20 px-4">
             {user ? (
               <>
-                <div className="flex flex-row sm:flex-row gap-3 sm:gap-4 justify-center mb-3">
+                <div className="flex flex-row sm:flex-row gap-3 sm:gap-4 lg:gap-6 justify-center mb-3 lg:mb-6">
                   <button
                     onClick={() => setShowSectorModal(true)}
-                    className="bg-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-blue-700 transition-colors shadow-lg flex items-center justify-center min-h-[44px] flex-1 sm:flex-none"
+                    className="bg-blue-600 text-white px-6 sm:px-8 lg:px-12 py-3 sm:py-4 lg:py-5 rounded-xl font-semibold text-base sm:text-lg lg:text-xl hover:bg-blue-700 transition-colors shadow-lg flex items-center justify-center min-h-[44px] flex-1 sm:flex-none"
                   >
                     Apply for New Loan
-                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 ml-2" />
                   </button>
                   <button
                     onClick={() => navigate('/loan/pay')}
-                    className="border-2 border-blue-600 text-blue-600 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-center min-h-[44px] flex-1 sm:flex-none"
+                    className="border-2 border-blue-600 text-blue-600 px-6 sm:px-8 lg:px-12 py-3 sm:py-4 lg:py-5 rounded-xl font-semibold text-base sm:text-lg lg:text-xl hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-center min-h-[44px] flex-1 sm:flex-none"
                   >
-                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 mr-2" />
                     Pay Loan
                   </button>
                 </div>
                 <div className="flex justify-center">
                   <button
                     onClick={() => navigate('/assess-medical-needs')}
-                    className="bg-white text-gray-700 border border-gray-300 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-gray-50 transition-colors flex items-center justify-center min-h-[44px]"
+                    className="bg-white text-gray-700 border border-gray-300 px-6 sm:px-8 lg:px-12 py-3 sm:py-4 lg:py-5 rounded-xl font-semibold text-base sm:text-lg lg:text-xl hover:bg-gray-50 transition-colors flex items-center justify-center min-h-[44px]"
                   >
-                    <Stethoscope className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                    <Stethoscope className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 mr-2" />
                     Assess Medical Needs
                   </button>
                 </div>
@@ -166,10 +166,10 @@ const Home: React.FC = () => {
               <div className="flex justify-center">
                 <button
                   onClick={() => setShowSectorModal(true)}
-                  className="bg-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-blue-700 transition-colors shadow-lg flex items-center justify-center min-h-[44px]"
+                  className="bg-blue-600 text-white px-6 sm:px-8 lg:px-12 py-3 sm:py-4 lg:py-5 rounded-xl font-semibold text-base sm:text-lg lg:text-xl hover:bg-blue-700 transition-colors shadow-lg flex items-center justify-center min-h-[44px]"
                 >
                   Apply for Loan
-                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 ml-2" />
                 </button>
               </div>
             )}
@@ -204,12 +204,12 @@ const Home: React.FC = () => {
                 <div className="text-sm sm:text-2xl font-bold text-green-600 mb-0.5 sm:mb-2">$75M+</div>
                 <div className="text-gray-600 text-xs sm:text-sm leading-tight">Loans<span className="hidden sm:inline"> Disbursed</span></div>
               </div>
-              <div className="hidden lg:block text-center p-2 sm:p-6 bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-gray-100 shadow-soft card-hover">
-                <div className="w-6 h-6 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-md sm:rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-4">
-                  <Clock className="w-3 h-3 sm:w-6 sm:h-6 text-white" />
+              <div className="hidden lg:block text-center p-2 sm:p-6 lg:p-8 bg-white/60 backdrop-blur-sm rounded-lg sm:rounded-xl border border-gray-100 shadow-soft card-hover">
+                <div className="w-6 h-6 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-md sm:rounded-lg flex items-center justify-center mx-auto mb-1 sm:mb-4 lg:mb-6">
+                  <Clock className="w-3 h-3 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-white" />
                 </div>
-                <div className="text-sm sm:text-2xl font-bold text-purple-600 mb-0.5 sm:mb-2">2 min</div>
-                <div className="text-gray-600 text-xs sm:text-sm leading-tight">Average Approval</div>
+                <div className="text-sm sm:text-2xl lg:text-3xl font-bold text-purple-600 mb-0.5 sm:mb-2 lg:mb-3">2 min</div>
+                <div className="text-gray-600 text-xs sm:text-sm lg:text-base leading-tight">Average Approval</div>
               </div>
             </div>
             <div className="flex justify-center lg:hidden">
