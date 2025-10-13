@@ -25,7 +25,7 @@ export const getGpsScore = async (loanId: string) => {
     const token = await getGpsToken();
     
     // Load the actual GPS CSV file from src folder
-    const csvResponse = await fetch('/src/gps_points_nairobi.csv');
+    const csvResponse = await fetch('/gps_points_nairobi.csv');
     if (!csvResponse.ok) {
       throw new Error('Failed to load GPS CSV file');
     }
