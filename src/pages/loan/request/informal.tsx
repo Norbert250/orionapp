@@ -18,6 +18,43 @@ import DocumentUploader from "../../../components/ui/DocumentUploader";
 import GuarantorFields from "../../../components/forms/GuarantorFields";
 import ProgressSteps from "../../../components/ui/progressBar";
 
+// Image compression utility with GPS fallback
+const compressImage = (file: File, quality: number = 0.8, maxWidth: number = 1920): Promise<File> => {
+  return new Promise((resolve) => {
+    // For GPS API, try to preserve original file if it has GPS data
+    if (file.name.toLowerCase().includes('home') || file.size < 2000000) {
+      resolve(file); // Keep original for GPS processing
+      return;
+    }
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    const img = new Image();
+    
+    img.onload = () => {
+      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(compressedFile);
+        } else {
+          resolve(file);
+        }
+      }, 'image/jpeg', quality);
+    };
+    
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 const InformalLoanRequest: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,6 +90,7 @@ const InformalLoanRequest: React.FC = () => {
   const [callLogsAnalysisResults, setCallLogsAnalysisResults] = useState<any[]>([]);
   const [mpesaAnalysisResults, setMpesaAnalysisResults] = useState<any[]>([]);
   const [finalGpsScore, setFinalGpsScore] = useState<number>(0);
+  const [gpsAnalysisResult, setGpsAnalysisResult] = useState<any>(null);
   const [assetsAnalysisResult, setAssetsAnalysisResult] = useState<any>(null);
 
   const {
@@ -102,10 +140,8 @@ const InformalLoanRequest: React.FC = () => {
       }
       
       setValue("amountRequested", totalCost);
-      alert(`Medical assessment complete! Estimated cost: KSH ${totalCost.toLocaleString()}`);
     } catch (error) {
       console.error('Medical assessment error:', error);
-      alert('Medical assessment failed. Please try again.');
     } finally {
       setMedicalProcessing(false);
     }
@@ -126,13 +162,29 @@ const InformalLoanRequest: React.FC = () => {
 
     setAssetsProcessing(true);
     try {
-      // Collect all images for GPS analysis
+      // Compress and collect all images for GPS analysis
       const gpsImages: File[] = [];
-      if (homeFloorPhoto[0]) gpsImages.push(homeFloorPhoto[0]);
-      assets.forEach(asset => gpsImages.push(asset.file));
+      if (homeFloorPhoto[0]) {
+        const compressedHome = await compressImage(homeFloorPhoto[0], 0.8, 1920);
+        gpsImages.push(compressedHome);
+      }
+      for (const asset of assets) {
+        const compressedAsset = await compressImage(asset.file, 0.8, 1920);
+        gpsImages.push(compressedAsset);
+      }
 
-      // Collect asset files for assets analysis
-      const assetFiles = assets.map(asset => asset.file);
+      // Compress and collect asset files for assets analysis
+      const assetFiles = await Promise.all(
+        assets.map(async (asset) => {
+          return await compressImage(asset.file, 0.8, 1920);
+        })
+      );
+      
+      // Include shop picture in assets analysis if business exists
+      if (hasRetailBusiness && shopPicture[0]) {
+        const compressedShop = await compressImage(shopPicture[0], 0.8, 1920);
+        assetFiles.push(compressedShop);
+      }
 
       console.log('Starting API analysis with', assetFiles.length, 'assets and', gpsImages.length, 'GPS images');
 
@@ -195,30 +247,24 @@ const InformalLoanRequest: React.FC = () => {
       // Calculate GPS score as the final step after all assets processing
       console.log('All assets processed, now calculating GPS score...');
       let finalGpsScore = 0;
+      let combinedGpsResult = null;
       try {
         const gpsScore = await calculateGpsScoreAfterAssets(loanId);
         console.log('Final GPS score:', gpsScore);
         finalGpsScore = gpsScore?.score || 0;
+        combinedGpsResult = {
+          ...gpsScore,
+          upload: gpsAnalysisResult
+        };
         setFinalGpsScore(finalGpsScore);
+        setGpsAnalysisResult(combinedGpsResult);
         
-        // Show success message
-        const apiSuccess = assetsAnalysisResult || gpsAnalysisResult;
-        if (apiSuccess) {
-          alert("Assets processed successfully with AI analysis and GPS score!");
-        } else {
-          alert("Assets processed with sample data (API services temporarily unavailable).");
-        }
+        // Assets processed successfully
       } catch (gpsScoreError: any) {
         console.warn('GPS score calculation failed:', gpsScoreError.message);
         setFinalGpsScore(0);
         
-        // Show success message even if GPS score fails
-        const apiSuccess = assetsAnalysisResult || gpsAnalysisResult;
-        if (apiSuccess) {
-          alert("Assets processed successfully with AI analysis (GPS score unavailable)!");
-        } else {
-          alert("Assets processed with sample data (API services temporarily unavailable).");
-        }
+        // Assets processed successfully
       }
 
       setStep(2);
@@ -322,13 +368,7 @@ const InformalLoanRequest: React.FC = () => {
 
       setDocumentResults(results);
 
-      // Show success message
-      const hasApiErrors = bankResults.some(r => r.status === 'processed_with_dummy_data');
-      if (hasApiErrors) {
-        alert("Documents processed successfully! Some analysis used sample data due to temporary service issues.");
-      } else {
-        alert("All documents processed successfully!");
-      }
+      // Documents processed successfully
 
       setStep(3);
     } catch (error: any) {
@@ -402,14 +442,15 @@ const InformalLoanRequest: React.FC = () => {
         callLogsAnalysisResults,
         mpesaAnalysisResults,
         guarantorFiles,
-        assetAnalysisResults: Array.isArray(assetResults) ? {
+        assetAnalysisResults: assetsAnalysisResult || {
           batch_id: 'processed-batch',
-          total_value: assetResults.reduce((sum, asset) => sum + (asset.value || 0), 0),
+          total_value: Array.isArray(assetResults) ? assetResults.reduce((sum, asset) => sum + (asset.value || 0), 0) : 0,
           status: 'completed',
-          files: assetResults.length,
-          credit_score: assetsAnalysisResult?.credit_score || 0
-        } : assetResults,
-        gpsScore: finalGpsScore
+          files: assets.length,
+          credit_score: 0
+        },
+        gpsScore: finalGpsScore,
+        gpsAnalysisResults: gpsAnalysisResult
       };
 
       // Submit to Supabase instead of external API

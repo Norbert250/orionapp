@@ -54,12 +54,13 @@ const ReviewLoan = () => {
       console.log('Final guarantors list:', guarantorsList);
       setGuarantors(guarantorsList);
 
-      const [bankAnalysis, payslipAnalysis, callLogsAnalysis, mpesaAnalysis, assetsAnalysis] = await Promise.all([
+      const [bankAnalysis, payslipAnalysis, callLogsAnalysis, mpesaAnalysis, assetsAnalysis, gpsAnalysis] = await Promise.all([
         supabase.from('bank_statement_analysis').select('*').eq('loan_id', id),
         supabase.from('payslip_analysis').select('*').eq('loan_id', id),
         supabase.from('call_logs_analysis').select('*').eq('loan_id', id),
         supabase.from('mpesa_analysis_results').select('*').eq('loan_id', id),
-        supabase.from('assets_analysis_results').select('*').eq('loan_id', id)
+        supabase.from('assets_analysis_results').select('*').eq('loan_id', id),
+        supabase.from('gps_analysis_results').select('*').eq('loan_id', id)
       ]);
 
       setAnalysisData({
@@ -68,7 +69,7 @@ const ReviewLoan = () => {
         callLogs: callLogsAnalysis.data || [],
         mpesa: mpesaAnalysis.data || [],
         assets: assetsAnalysis.data || [],
-        gps: []
+        gps: gpsAnalysis.data || []
       });
     } catch (error) {
       console.error('Error fetching loan details');
@@ -122,10 +123,16 @@ const ReviewLoan = () => {
           break;
           
         case 'Payslip':
-          const { data: payslipDocs } = await supabase
+          const { data: payslipDocs, error: payslipError } = await supabase
             .from('payslipfiles')
             .select('*')
             .eq('loan_id', id);
+          
+          if (payslipError) {
+            console.error('Error fetching payslip documents:', payslipError);
+          }
+          
+          console.log('Payslip documents found:', payslipDocs);
           documents = payslipDocs || [];
           break;
           
@@ -138,10 +145,16 @@ const ReviewLoan = () => {
           break;
           
         case 'Call Logs':
-          const { data: callLogDocs } = await supabase
+          const { data: callLogDocs, error: callLogError } = await supabase
             .from('calllogfiles')
             .select('*')
             .eq('loan_id', id);
+          
+          if (callLogError) {
+            console.error('Error fetching call log documents:', callLogError);
+          }
+          
+          console.log('Call log documents found:', callLogDocs);
           documents = callLogDocs || [];
           break;
           
@@ -253,10 +266,9 @@ const ReviewLoan = () => {
           break;
         case 'GPS':
           const { data: gpsData, error: gpsError } = await supabase
-            .from('other_documents')
+            .from('gps_analysis_results')
             .select('*')
-            .eq('loan_id', id)
-            .eq('document_type', 'home_photo');
+            .eq('loan_id', id);
           console.log('GPS query result:', gpsData, 'Error:', gpsError);
           tableData = gpsData;
           break;
@@ -266,10 +278,14 @@ const ReviewLoan = () => {
       const { data: testBank } = await supabase.from('bank_statement_analysis').select('*').order('created_at', { ascending: false }).limit(3);
       const { data: testMpesa } = await supabase.from('mpesa_analysis_results').select('*').order('created_at', { ascending: false }).limit(3);
       const { data: testAssets } = await supabase.from('assets_analysis_results').select('*').order('created_at', { ascending: false }).limit(3);
+      const { data: testCallLogs } = await supabase.from('call_logs_analysis').select('*').order('created_at', { ascending: false }).limit(3);
       console.log('Recent bank analysis:', testBank);
       console.log('Recent mpesa analysis:', testMpesa);
       console.log('Recent assets analysis:', testAssets);
+      console.log('Recent call logs analysis:', testCallLogs);
       console.log('Current loan ID:', id);
+      console.log('Selected analysis type:', analysisType);
+      console.log('Table data result:', tableData);
       
       setSelectedAnalysisData(tableData || []);
     } catch (error) {
@@ -561,7 +577,7 @@ const ReviewLoan = () => {
 
                 {/* Payslip Analysis */}
                 {(() => {
-                  const payslipScore = loan.payslips_score || (analysisData.payslip?.[0]?.credit_score || 0);
+                  const payslipScore = loan.payslips_score || analysisData.payslip?.[0]?.credit_score || 0;
                   return (
                     <div className="bg-cyan-50 rounded p-3 border border-cyan-100 flex items-center gap-3">
                       <div className="relative w-14 h-14">
@@ -768,15 +784,22 @@ const ReviewLoan = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-blue-50 rounded p-3 border border-blue-100">
-              <h3 className="font-semibold mb-2" style={{color: '#005baa'}}>Bank Statement Analysis</h3>
+              <h3 className="font-semibold mb-3" style={{color: '#005baa'}}>Bank Statement Analysis</h3>
               {(loan.bank_statement_score && loan.bank_statement_score > 0) ? (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                  <div>Credit Score: <span className="font-semibold">{loan.bank_statement_score || analysisData.bank?.[0]?.credit_score || 'N/A'}%</span></div>
-                  <div>Total Value: <span className="font-semibold">KSh {(analysisData.bank?.[0]?.total_deposits || 0).toLocaleString()}</span></div>
-                  <div>Analysis Count: <span className="font-semibold">{analysisData.bank?.[0]?.transaction_count || 'N/A'}</span></div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Credit Score: <span className="font-semibold">{loan.bank_statement_score}%</span></div>
+                    <div>Total Deposits: <span className="font-semibold">KSh {(analysisData.bank?.[0]?.total_deposits || 0).toLocaleString()}</span></div>
+                    <div>Closing Balance: <span className="font-semibold">KSh {(analysisData.bank?.[0]?.closing_balance || 0).toLocaleString()}</span></div>
+                  </div>
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Active Days: <span className="font-semibold">{analysisData.bank?.[0]?.active_days || 'N/A'}</span></div>
+                    <div>Bank Charges: <span className="font-semibold">KSh {(analysisData.bank?.[0]?.bank_charges || 0).toLocaleString()}</span></div>
+                    <div>Student Status: <span className="font-semibold">{analysisData.bank?.[0]?.student_status ? 'Yes' : 'No'}</span></div>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                <div className="text-sm mb-3" style={{color: '#333333'}}>
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
@@ -797,15 +820,22 @@ const ReviewLoan = () => {
             </div>
 
             <div className="bg-green-50 rounded p-3 border border-green-100">
-              <h3 className="font-semibold mb-2" style={{color: '#2ecc71'}}>M-Pesa Analysis</h3>
+              <h3 className="font-semibold mb-3" style={{color: '#2ecc71'}}>M-Pesa Analysis</h3>
               {(loan.mpesa_score || analysisData.mpesa?.length > 0) ? (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                  <div>Credit Score: <span className="font-semibold">{loan.mpesa_score || analysisData.mpesa?.[0]?.credit_score || 'N/A'}%</span></div>
-                  <div>Total Value: <span className="font-semibold">KSh {analysisData.mpesa?.[0]?.transaction_volume?.toLocaleString() || 'N/A'}</span></div>
-                  <div>Analysis Count: <span className="font-semibold">{analysisData.mpesa?.[0]?.transaction_frequency || 'N/A'}</span></div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Credit Score: <span className="font-semibold">{loan.mpesa_score || analysisData.mpesa?.[0]?.credit_score || 'N/A'}%</span></div>
+                    <div>Total Volume: <span className="font-semibold">KSh {analysisData.mpesa?.[0]?.transaction_volume?.toLocaleString() || 'N/A'}</span></div>
+                    <div>Avg Transaction: <span className="font-semibold">KSh {(analysisData.mpesa?.[0]?.average_transaction || 0).toLocaleString()}</span></div>
+                  </div>
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Frequency: <span className="font-semibold">{analysisData.mpesa?.[0]?.transaction_frequency || 'N/A'}</span></div>
+                    <div>Risk Level: <span className="font-semibold">{analysisData.mpesa?.[0]?.risk_assessment || 'N/A'}</span></div>
+                    <div>Pattern: <span className="font-semibold">{analysisData.mpesa?.[0]?.spending_pattern || 'N/A'}</span></div>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                <div className="text-sm mb-3" style={{color: '#333333'}}>
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
@@ -826,15 +856,22 @@ const ReviewLoan = () => {
             </div>
 
             <div className="bg-purple-50 rounded p-3 border border-purple-100">
-              <h3 className="font-semibold mb-2" style={{color: '#8b5cf6'}}>Assets Analysis</h3>
+              <h3 className="font-semibold mb-3" style={{color: '#8b5cf6'}}>Assets Analysis</h3>
               {(loan.assets_score || analysisData.assets?.length > 0) ? (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                  <div>Credit Score: <span className="font-semibold">{loan.assets_score || analysisData.assets?.[0]?.credit_score || 'N/A'}%</span></div>
-                  <div>Total Value: <span className="font-semibold">KSh {analysisData.assets?.[0]?.total_value?.toLocaleString() || 'N/A'}</span></div>
-                  <div>Asset Count: <span className="font-semibold">{analysisData.assets?.[0]?.asset_count || 'N/A'}</span></div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Credit Score: <span className="font-semibold">{loan.assets_score || 'N/A'}%</span></div>
+                    <div>Total Value: <span className="font-semibold">KSh {analysisData.assets?.[0]?.total_asset_value?.toLocaleString() || 'N/A'}</span></div>
+                    <div>Assets Detected: <span className="font-semibold">{analysisData.assets?.[0]?.total_assets_detected || 'N/A'}</span></div>
+                  </div>
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Images Processed: <span className="font-semibold">{analysisData.assets?.[0]?.total_images_processed || 'N/A'}</span></div>
+                    <div>Avg Condition: <span className="font-semibold">{analysisData.assets?.[0]?.average_asset_condition?.toFixed(1) || 'N/A'}</span></div>
+                    <div>Diversity Score: <span className="font-semibold">{analysisData.assets?.[0]?.asset_diversity_score || 'N/A'}</span></div>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                <div className="text-sm mb-3" style={{color: '#333333'}}>
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
@@ -855,15 +892,22 @@ const ReviewLoan = () => {
             </div>
 
             <div className="bg-cyan-50 rounded p-3 border border-cyan-100">
-              <h3 className="font-semibold mb-2" style={{color: '#0891b2'}}>Payslip Analysis</h3>
-              {(loan.payslips_score && loan.payslips_score > 0) ? (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                  <div>Credit Score: <span className="font-semibold">{loan.payslips_score || analysisData.payslip?.[0]?.credit_score || 'N/A'}%</span></div>
-                  <div>Total Value: <span className="font-semibold">KSh {(analysisData.payslip?.[0]?.net_salary || 0).toLocaleString()}</span></div>
-                  <div>Analysis Count: <span className="font-semibold">{analysisData.payslip?.length || 'N/A'}</span></div>
+              <h3 className="font-semibold mb-3" style={{color: '#0891b2'}}>Payslip Analysis</h3>
+              {(loan.payslips_score && loan.payslips_score > 0) || (analysisData.payslip?.length > 0) ? (
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Credit Score: <span className="font-semibold">{loan.payslips_score || analysisData.payslip?.[0]?.credit_score || 'N/A'}%</span></div>
+                    <div>Net Salary: <span className="font-semibold">KSh {(analysisData.payslip?.[0]?.features?.net_salary || analysisData.payslip?.[0]?.net_salary || 0).toLocaleString()}</span></div>
+                    <div>Gross Salary: <span className="font-semibold">KSh {(analysisData.payslip?.[0]?.features?.gross_salary || analysisData.payslip?.[0]?.gross_salary || 0).toLocaleString()}</span></div>
+                  </div>
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Employee: <span className="font-semibold">{analysisData.payslip?.[0]?.features?.employee_name || analysisData.payslip?.[0]?.employee_name || 'N/A'}</span></div>
+                    <div>Employer: <span className="font-semibold">{analysisData.payslip?.[0]?.features?.employer_name || analysisData.payslip?.[0]?.employer_name || 'N/A'}</span></div>
+                    <div>Deductions: <span className="font-semibold">KSh {(analysisData.payslip?.[0]?.features?.other_deductions || analysisData.payslip?.[0]?.other_deductions || 0).toLocaleString()}</span></div>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                <div className="text-sm mb-3" style={{color: '#333333'}}>
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
@@ -884,15 +928,22 @@ const ReviewLoan = () => {
             </div>
 
             <div className="bg-orange-50 rounded p-3 border border-orange-100">
-              <h3 className="font-semibold mb-2" style={{color: '#f97316'}}>Call Logs Analysis</h3>
+              <h3 className="font-semibold mb-3" style={{color: '#f97316'}}>Call Logs Analysis</h3>
               {(loan.call_logs_score && loan.call_logs_score > 0) ? (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                  <div>Credit Score: <span className="font-semibold">{loan.call_logs_score || analysisData.callLogs?.[0]?.credit_score || 'N/A'}%</span></div>
-                  <div>Total Value: <span className="font-semibold">{analysisData.callLogs?.[0]?.total_calls || 'N/A'}</span></div>
-                  <div>Analysis Count: <span className="font-semibold">{analysisData.callLogs?.[0]?.unique_contacts || 'N/A'}</span></div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Credit Score: <span className="font-semibold">{loan.call_logs_score}%</span></div>
+                    <div>Call Frequency: <span className="font-semibold">{analysisData.callLogs?.[0]?.call_frequency || 'N/A'}</span></div>
+                    <div>Call Duration: <span className="font-semibold">{analysisData.callLogs?.[0]?.call_duration || 'N/A'}</span></div>
+                  </div>
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Active Behavior: <span className="font-semibold">{analysisData.callLogs?.[0]?.active_behavior || 'N/A'}</span></div>
+                    <div>Stable Contacts: <span className="font-semibold">{(analysisData.callLogs?.[0]?.stable_contacts_ratio * 100)?.toFixed(1) || 'N/A'}%</span></div>
+                    <div>Night vs Day: <span className="font-semibold">{analysisData.callLogs?.[0]?.night_vs_day || 'N/A'}</span></div>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                <div className="text-sm mb-3" style={{color: '#333333'}}>
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
@@ -914,15 +965,22 @@ const ReviewLoan = () => {
 
             {/* GPS Analysis */}
             <div className="bg-red-50 rounded p-3 border border-red-100">
-              <h3 className="font-semibold mb-2" style={{color: '#dc2626'}}>GPS Analysis</h3>
-              {(loan.gps_score || analysisData.gps?.length > 0) ? (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
-                  <div>Credit Score: <span className="font-semibold">{loan.gps_score || analysisData.gps?.[0]?.credit_score || 'N/A'}%</span></div>
-                  <div>Total Value: <span className="font-semibold">{analysisData.gps?.[0]?.travel_radius || 'N/A'} km</span></div>
-                  <div>Analysis Count: <span className="font-semibold">{analysisData.gps?.length || 'N/A'}</span></div>
+              <h3 className="font-semibold mb-3" style={{color: '#dc2626'}}>GPS Analysis</h3>
+              {(loan.gps_score && loan.gps_score > 0) ? (
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Credit Score: <span className="font-semibold">{loan.gps_score}%</span></div>
+                    <div>Work Country: <span className="font-semibold">{analysisData.gps?.[0]?.work_country || 'N/A'}</span></div>
+                    <div>Total Trips: <span className="font-semibold">{analysisData.gps?.[0]?.trips || 'N/A'}</span></div>
+                  </div>
+                  <div className="space-y-1 text-sm" style={{color: '#333333'}}>
+                    <div>Distinct Cities: <span className="font-semibold">{analysisData.gps?.[0]?.distinct_cities_last_window || 'N/A'}</span></div>
+                    <div>Jump Rate: <span className="font-semibold">{analysisData.gps?.[0]?.impossible_jump_rate || 'N/A'}</span></div>
+                    <div>Images Processed: <span className="font-semibold">{analysisData.gps?.[0]?.total_images_processed || 'N/A'}</span></div>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-1 text-sm mb-3" style={{color: '#333333'}}>
+                <div className="text-sm mb-3" style={{color: '#333333'}}>
                   <div>Status: <span className="font-semibold">No analysis data available</span></div>
                 </div>
               )}
