@@ -158,77 +158,54 @@ const InformalLoanRequest: React.FC = () => {
     };
   }, [trackActivity]);
 
-  // Mark as abandoned when user leaves without completing
+  // Mark as abandoned when user closes tab/browser
   useEffect(() => {
-    let isActive = true;
-    let lastPing = Date.now();
-
-    // Send periodic heartbeat
-    const heartbeat = setInterval(() => {
-      if (isActive && user?.id) {
-        lastPing = Date.now();
-        supabase
-          .from('form_progress')
-          .update({ last_activity: new Date().toISOString() })
-          .eq('user_id', user.id)
-          .eq('form_type', 'informal')
-          .eq('status', 'in_progress')
-          .then(() => console.log('Heartbeat sent'))
-          .catch(console.error);
+    const markAbandoned = async () => {
+      if (user?.id) {
+        try {
+          await supabase
+            .from('form_progress')
+            .update({ 
+              status: 'abandoned',
+              abandoned_at: new Date().toISOString(),
+              last_activity: new Date().toISOString()
+            })
+            .eq('user_id', user.id)
+            .eq('form_type', 'informal')
+            .eq('status', 'in_progress');
+          console.log('✅ Form marked as abandoned');
+        } catch (error) {
+          console.error('❌ Error marking form as abandoned:', error);
+        }
       }
-    }, 5000); // Every 5 seconds
+    };
 
-    // Handle visibility change
+    // Handle tab/window close
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        isActive = false;
-        // Mark as abandoned after 10 seconds of inactivity
-        setTimeout(() => {
-          if (!isActive && user?.id) {
-            supabase
-              .from('form_progress')
-              .update({ 
-                status: 'abandoned',
-                abandoned_at: new Date().toISOString(),
-                last_activity: new Date().toISOString()
-              })
-              .eq('user_id', user.id)
-              .eq('form_type', 'informal')
-              .eq('status', 'in_progress')
-              .then(() => console.log('Form marked as abandoned due to inactivity'))
-              .catch(console.error);
-          }
-        }, 10000);
-      } else {
-        isActive = true;
+        markAbandoned();
       }
     };
 
-    // Handle page unload
     const handleBeforeUnload = () => {
-      isActive = false;
-      if (user?.id) {
-        navigator.sendBeacon(
-          `${supabase.supabaseUrl}/rest/v1/form_progress?user_id=eq.${user.id}&form_type=eq.informal&status=eq.in_progress`,
-          JSON.stringify({
-            status: 'abandoned',
-            abandoned_at: new Date().toISOString(),
-            last_activity: new Date().toISOString()
-          })
-        );
-      }
+      markAbandoned();
     };
 
+    const handlePageHide = () => {
+      markAbandoned();
+    };
+
+    // Add all possible event listeners for tab/browser close
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('pagehide', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('unload', handleBeforeUnload);
     
     return () => {
-      isActive = false;
-      clearInterval(heartbeat);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('pagehide', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('unload', handleBeforeUnload);
     };
   }, [user?.id]);
 
