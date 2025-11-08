@@ -55,6 +55,18 @@ const CompanyDashboard = () => {
   const fetchFormProgress = async () => {
     try {
       console.log('Fetching form progress data...');
+      
+      // Mark inactive forms as abandoned (no activity for 15 seconds)
+      const fifteenSecondsAgo = new Date(Date.now() - 15 * 1000).toISOString();
+      await supabase
+        .from('form_progress')
+        .update({ 
+          status: 'abandoned',
+          abandoned_at: new Date().toISOString()
+        })
+        .eq('status', 'in_progress')
+        .lt('last_activity', fifteenSecondsAgo);
+      
       // Fetch form progress data
       const { data: progressData, error } = await supabase
         .from('form_progress')

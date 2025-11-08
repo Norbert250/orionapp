@@ -160,25 +160,75 @@ const InformalLoanRequest: React.FC = () => {
 
   // Mark as abandoned when user leaves without completing
   useEffect(() => {
+    let isActive = true;
+    let lastPing = Date.now();
+
+    // Send periodic heartbeat
+    const heartbeat = setInterval(() => {
+      if (isActive && user?.id) {
+        lastPing = Date.now();
+        supabase
+          .from('form_progress')
+          .update({ last_activity: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .eq('form_type', 'informal')
+          .eq('status', 'in_progress')
+          .then(() => console.log('Heartbeat sent'))
+          .catch(console.error);
+      }
+    }, 5000); // Every 5 seconds
+
+    // Handle visibility change
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isActive = false;
+        // Mark as abandoned after 10 seconds of inactivity
+        setTimeout(() => {
+          if (!isActive && user?.id) {
+            supabase
+              .from('form_progress')
+              .update({ 
+                status: 'abandoned',
+                abandoned_at: new Date().toISOString(),
+                last_activity: new Date().toISOString()
+              })
+              .eq('user_id', user.id)
+              .eq('form_type', 'informal')
+              .eq('status', 'in_progress')
+              .then(() => console.log('Form marked as abandoned due to inactivity'))
+              .catch(console.error);
+          }
+        }, 10000);
+      } else {
+        isActive = true;
+      }
+    };
+
+    // Handle page unload
     const handleBeforeUnload = () => {
+      isActive = false;
       if (user?.id) {
-        // Use sendBeacon for reliable delivery when page unloads
-        const data = JSON.stringify({
-          status: 'abandoned',
-          last_activity: new Date().toISOString()
-        });
-        
         navigator.sendBeacon(
-          `https://qdzbhhqxkfpcedymgfez.supabase.co/rest/v1/form_progress?user_id=eq.${user.id}&form_type=eq.informal&status=eq.in_progress`,
-          data
+          `${supabase.supabaseUrl}/rest/v1/form_progress?user_id=eq.${user.id}&form_type=eq.informal&status=eq.in_progress`,
+          JSON.stringify({
+            status: 'abandoned',
+            abandoned_at: new Date().toISOString(),
+            last_activity: new Date().toISOString()
+          })
         );
       }
     };
 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
     
     return () => {
+      isActive = false;
+      clearInterval(heartbeat);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
     };
   }, [user?.id]);
 
