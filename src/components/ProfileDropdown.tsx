@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { User, Home, FileText, BarChart3, LogOut, ChevronDown } from 'lucide-react'
+import { User, Home, FileText, BarChart3, LogOut, ChevronDown, Activity } from 'lucide-react'
 
 const ProfileDropdown = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -86,7 +86,19 @@ const ProfileDropdown = () => {
               <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-100 group-hover:scale-110 transition-all">
                 <BarChart3 className="w-4 h-4 text-gray-600 group-hover:text-blue-600" />
               </div>
-              <span className="font-medium">Dashboard</span>
+              <span className="font-medium">Loan Dashboard</span>
+            </button>
+            <button
+              onClick={() => {
+                navigate('/company-dashboard')
+                setIsOpen(false)
+              }}
+              className="group w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center transition-all duration-200 rounded-lg mx-2"
+            >
+              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3 group-hover:bg-blue-100 group-hover:scale-110 transition-all">
+                <Activity className="w-4 h-4 text-gray-600 group-hover:text-blue-600" />
+              </div>
+              <span className="font-medium">Progress Dashboard</span>
             </button>
             <button
               onClick={() => {

@@ -13,6 +13,7 @@ import UploadPDF from './pages/uploadPDF';
 import AssessMedicalNeeds from './pages/AssessMedicalNeeds';
 import MedicineResults from './pages/MedicineResults';
 import Dashboard from './pages/Dashboard';
+import CompanyDashboard from './pages/CompanyDashboard';
 import ReviewLoan from './pages/ReviewLoan';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
@@ -74,10 +75,15 @@ function App() {
             </ProtectedRoute>
           } />
           
-          {/* Dashboard Route */}
+          {/* Dashboard Routes */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/company-dashboard" element={
+            <ProtectedRoute>
+              <CompanyDashboard />
             </ProtectedRoute>
           } />
           <Route path="/review/:id" element={

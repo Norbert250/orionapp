@@ -13,6 +13,7 @@ import { Heart, Upload, FileText, Users, CheckCircle, AlertCircle, Camera, Build
 import { useAuth } from "../../../contexts/AuthContext";
 import type { Asset, LoanFormData } from "../../../types";
 import { submitLoanToSupabase } from "../../../api/loanSubmission";
+import { useFormProgress } from "../../../hooks/useFormProgress";
 import { submitBankStatement, getBankStatementScore } from "../../../api/bankStatementApi";
 import DocumentUploader from "../../../components/ui/DocumentUploader";
 import GuarantorFields from "../../../components/forms/GuarantorFields";
@@ -62,6 +63,14 @@ const InformalLoanRequest: React.FC = () => {
   const [step, setStep] = useState(0);
   const steps = ["Instructions", "Assets", "Documents", "Loan Details"];
   const [loanId] = useState(() => crypto.randomUUID());
+  const { updateProgress, markCompleted, trackActivity } = useFormProgress('informal', 3);
+
+  // Track detailed sub-steps
+  const trackSubStep = (mainStep: number, subStep: string) => {
+    const stepNames = ["Instructions", "Assets", "Documents", "Loan Details"];
+    const detailedStep = `${stepNames[mainStep]} - ${subStep}`;
+    updateProgress(mainStep, detailedStep);
+  };
 
   // Processing states
   const [assetsProcessing, setAssetsProcessing] = useState(false);
@@ -121,7 +130,57 @@ const InformalLoanRequest: React.FC = () => {
     if (state?.totalCost) {
       setValue("amountRequested", state.totalCost);
     }
-  }, [location.state, setValue]);
+    
+    // Initial progress tracking
+    console.log('📝 Form initialized, tracking progress');
+    updateProgress(0, 'Instructions - Reading');
+  }, [location.state, setValue, updateProgress]);
+
+  // Track progress when step changes
+  useEffect(() => {
+    console.log('🔄 Step changed to:', step, steps[step]);
+    updateProgress(step, steps[step]);
+  }, [step, updateProgress]);
+
+  // Track user activity on form interactions
+  useEffect(() => {
+    const handleActivity = () => trackActivity();
+    
+    // Track clicks, typing, and form interactions
+    document.addEventListener('click', handleActivity);
+    document.addEventListener('keypress', handleActivity);
+    document.addEventListener('change', handleActivity);
+    
+    return () => {
+      document.removeEventListener('click', handleActivity);
+      document.removeEventListener('keypress', handleActivity);
+      document.removeEventListener('change', handleActivity);
+    };
+  }, [trackActivity]);
+
+  // Mark as abandoned when user leaves without completing
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (user?.id) {
+        // Use sendBeacon for reliable delivery when page unloads
+        const data = JSON.stringify({
+          status: 'abandoned',
+          last_activity: new Date().toISOString()
+        });
+        
+        navigator.sendBeacon(
+          `https://qdzbhhqxkfpcedymgfez.supabase.co/rest/v1/form_progress?user_id=eq.${user.id}&form_type=eq.informal&status=eq.in_progress`,
+          data
+        );
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [user?.id]);
 
   // Process Medical Assessment
   const processMedicalAssessment = async () => {
@@ -455,6 +514,7 @@ const InformalLoanRequest: React.FC = () => {
 
       // Submit to Supabase instead of external API
       const response = await submitLoanToSupabase(formData, user?.id);
+      await markCompleted();
       alert("Loan application submitted successfully!");
       navigate(`/`);
     } catch (error: any) {
@@ -566,6 +626,27 @@ const InformalLoanRequest: React.FC = () => {
             
             <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number *
+              </label>
+              <input
+                type="tel"
+                {...register("phoneNumber", { 
+                  required: "Phone number is required",
+                  pattern: {
+                    value: /^[0-9+\-\s()]+$/,
+                    message: "Please enter a valid phone number"
+                  }
+                })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., +254 700 123 456"
+              />
+              {errors.phoneNumber && (
+                <p className="text-red-500 text-sm mt-1">{errors.phoneNumber.message}</p>
+              )}
+            </div>
+            
+            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 What type of work do you do? *
               </label>
               <select
@@ -605,10 +686,16 @@ const InformalLoanRequest: React.FC = () => {
               type="button"
               onClick={() => {
                 const workType = watch("workType");
+                const phoneNumber = watch("phoneNumber");
+                if (!phoneNumber) {
+                  alert("Please enter your phone number before continuing");
+                  return;
+                }
                 if (!workType) {
                   alert("Please select your work type before continuing");
                   return;
                 }
+                updateProgress(1, 'Assets - Starting Upload');
                 setStep(1);
               }}
               className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 text-base sm:text-lg"
@@ -640,6 +727,7 @@ const InformalLoanRequest: React.FC = () => {
                   const files = Array.from(e.target.files || []);
                   const newAssets = files.map(file => ({ file }));
                   setAssets([...assets, ...newAssets]);
+                  updateProgress(1, `Assets - Uploading (${assets.length + files.length} files)`);
                 }}
                 className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-colors"
               />
@@ -663,6 +751,7 @@ const InformalLoanRequest: React.FC = () => {
                 onChange={(e) => {
                   const files = Array.from(e.target.files || []);
                   setHomeFloorPhoto(files);
+                  updateProgress(1, 'Assets - Home Photo Added');
                 }}
                 className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-colors"
               />
@@ -675,6 +764,10 @@ const InformalLoanRequest: React.FC = () => {
                 <input
                   type="checkbox"
                   {...register("hasRetailBusiness")}
+                  onChange={(e) => {
+                    register("hasRetailBusiness").onChange(e);
+                    updateProgress(1, e.target.checked ? 'Assets - Filling Business Info (Optional)' : 'Assets - No Business');
+                  }}
                   className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 focus:ring-blue-500 focus:ring-2 border-2 border-gray-300 rounded bg-white checked:bg-blue-600 checked:border-blue-600 flex-shrink-0 transition-colors"
                 />
                 <span className="text-sm font-medium text-gray-700">
@@ -695,6 +788,7 @@ const InformalLoanRequest: React.FC = () => {
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
                     setShopPicture(files);
+                    updateProgress(1, 'Assets - Shop Photo Added');
                   }}
                   className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition-colors"
                 />
@@ -712,7 +806,10 @@ const InformalLoanRequest: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={processAssets}
+                onClick={() => {
+                updateProgress(1, 'Assets - Processing...');
+                processAssets();
+              }}
                 disabled={assetsProcessing || assets.length < 3 || homeFloorPhoto.length === 0}
                 className="w-full sm:flex-1 bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 text-base"
               >
@@ -744,6 +841,10 @@ const InformalLoanRequest: React.FC = () => {
                 <input
                   type="checkbox"
                   {...register("hasBankAccount")}
+                  onChange={(e) => {
+                    register("hasBankAccount").onChange(e);
+                    updateProgress(2, e.target.checked ? 'Documents - Has Bank Account' : 'Documents - No Bank Account');
+                  }}
                   className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 focus:ring-blue-500 focus:ring-2 border-2 border-gray-300 rounded bg-white checked:bg-blue-600 checked:border-blue-600 flex-shrink-0 transition-colors"
                 />
                 <span className="text-sm font-medium text-gray-700">
@@ -782,7 +883,10 @@ const InformalLoanRequest: React.FC = () => {
             <DocumentUploader
               label="M-Pesa Statements"
               files={mpesaStatements}
-              onFilesChange={setMpesaStatements}
+              onFilesChange={(files) => {
+                setMpesaStatements(files);
+                updateProgress(2, `Documents - Uploading M-Pesa Statement (${files.length} files)`);
+              }}
               accept=".pdf,.jpg,.jpeg,.png"
               multiple
             />
@@ -804,7 +908,10 @@ const InformalLoanRequest: React.FC = () => {
             <DocumentUploader
               label="Call Logs"
               files={callLogs}
-              onFilesChange={setCallLogs}
+              onFilesChange={(files) => {
+                setCallLogs(files);
+                updateProgress(2, `Documents - Call Logs (${files.length} files)`);
+              }}
               accept=".pdf,.jpg,.jpeg,.png,.txt,.csv"
               multiple
             />
@@ -828,7 +935,10 @@ const InformalLoanRequest: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={processDocuments}
+                onClick={() => {
+                updateProgress(2, 'Documents - Processing...');
+                processDocuments();
+              }}
                 disabled={documentsProcessing || (mpesaStatements.length === 0 && callLogs.length === 0 && bankStatements.length === 0)}
                 className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
@@ -870,6 +980,12 @@ const InformalLoanRequest: React.FC = () => {
                       min: { value: 1000, message: "Minimum loan amount is KSH 1,000" },
                       max: { value: 1000000, message: "Maximum loan amount is KSH 1,000,000" }
                     })}
+                    onChange={(e) => {
+                      register("amountRequested").onChange(e);
+                      if (e.target.value) {
+                        updateProgress(3, `Loan Details - Amount: KSH ${parseInt(e.target.value).toLocaleString()}`);
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 50000"
                   />
@@ -895,7 +1011,11 @@ const InformalLoanRequest: React.FC = () => {
                         type="file"
                         multiple
                         accept="image/*"
-                        onChange={(e) => setMedicalDrugFiles(Array.from(e.target.files || []))}
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          setMedicalDrugFiles(files);
+                          updateProgress(3, `Loan Details - Analysing Medical Needs (${files.length} drug files)`);
+                        }}
                         className="w-full text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-blue-100 file:text-blue-700"
                       />
                     </div>
@@ -905,13 +1025,20 @@ const InformalLoanRequest: React.FC = () => {
                         type="file"
                         multiple
                         accept="image/*,.pdf"
-                        onChange={(e) => setMedicalPrescriptionFiles(Array.from(e.target.files || []))}
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          setMedicalPrescriptionFiles(files);
+                          updateProgress(3, `Loan Details - Analysing Medical Needs (${files.length} prescription files)`);
+                        }}
                         className="w-full text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-blue-100 file:text-blue-700"
                       />
                     </div>
                     <button
                       type="button"
-                      onClick={processMedicalAssessment}
+                      onClick={() => {
+                        updateProgress(3, 'Loan Details - Analysing Medical Needs (Processing...)');
+                        processMedicalAssessment();
+                      }}
                       disabled={medicalProcessing || (medicalDrugFiles.length === 0 && medicalPrescriptionFiles.length === 0)}
                       className="w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
                     >
@@ -951,7 +1078,10 @@ const InformalLoanRequest: React.FC = () => {
               register={register}
               setValue={setValue}
               errors={errors}
-              onProcessComplete={processGuarantors}
+              onProcessComplete={(files) => {
+                updateProgress(3, `Loan Details - Uploading Guarantors Info and ID (${files.length} files)`);
+                return processGuarantors(files);
+              }}
               processing={guarantorsProcessing}
             />
 
@@ -965,6 +1095,7 @@ const InformalLoanRequest: React.FC = () => {
               </button>
               <button
                 type="submit"
+                onClick={() => updateProgress(3, 'Loan Details - Submitting Application...')}
                 disabled={isSubmitting || guarantorsProcessing || !guarantorsProcessed}
                 className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
