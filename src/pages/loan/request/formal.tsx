@@ -6,6 +6,7 @@ import { useAuth } from "../../../contexts/AuthContext";
 import type { LoanFormData, Asset } from "../../../types";
 import { submitLoanToSupabase } from "../../../api/loanSubmission";
 import { submitBankStatement, getBankStatementScore } from "../../../api/bankStatementApi";
+import { useFormProgress } from "../../../hooks/useFormProgress";
 import { analyzeAndScorePayslip } from "../../../api/payslipApi";
 import { analyzeAndScoreAssets } from "../../../api/assetsAnalysisApi";
 import { analyzeGpsImages, calculateGpsScoreAfterAssets } from "../../../api/gpsAnalysisApi";
@@ -61,6 +62,7 @@ const FormalLoanRequest: React.FC = () => {
   const [step, setStep] = useState(0);
   const steps = ["Instructions", "Assets", "Documents", "Loan Details"];
   const [loanId] = useState(() => crypto.randomUUID());
+  const { updateProgress, markCompleted, trackActivity, sessionId } = useFormProgress('formal', 3);
 
   // Processing states
   const [assetsProcessing, setAssetsProcessing] = useState(false);
@@ -123,7 +125,30 @@ const FormalLoanRequest: React.FC = () => {
     if (state?.totalCost) {
       setValue("amountRequested", state.totalCost);
     }
-  }, [location.state, setValue]);
+    
+    // Initial progress tracking
+    updateProgress(0, 'Instructions - Reading');
+  }, [location.state, setValue, updateProgress]);
+
+  // Track progress when step changes
+  useEffect(() => {
+    updateProgress(step, steps[step]);
+  }, [step, updateProgress]);
+
+  // Track user activity on form interactions
+  useEffect(() => {
+    const handleActivity = () => trackActivity();
+    
+    document.addEventListener('click', handleActivity);
+    document.addEventListener('keypress', handleActivity);
+    document.addEventListener('change', handleActivity);
+    
+    return () => {
+      document.removeEventListener('click', handleActivity);
+      document.removeEventListener('keypress', handleActivity);
+      document.removeEventListener('change', handleActivity);
+    };
+  }, [trackActivity]);
 
   // Process Medical Assessment
   const processMedicalAssessment = async () => {
@@ -225,15 +250,8 @@ const FormalLoanRequest: React.FC = () => {
         }));
         console.log('Using API results for asset valuation');
       } else {
-        // Fallback to dummy data
-        results = assets.map((asset, index) => ({
-          value: Math.floor(Math.random() * 50000) + 10000,
-          description: `Asset ${index + 1}`,
-          category: ['electronics', 'furniture', 'vehicle'][Math.floor(Math.random() * 3)],
-          estimated_value: Math.floor(Math.random() * 50000) + 10000,
-          api_processed: false
-        }));
-        console.log('Using fallback dummy data for asset valuation');
+        console.log('Assets analysis API failed - no results available');
+        results = [];
       }
 
       setAssetResults(results);
@@ -319,15 +337,8 @@ const FormalLoanRequest: React.FC = () => {
           console.log('Bank statements processed successfully with scores');
           setBankAnalysisResults(bankResults);
         } catch (error: any) {
-          console.warn('Bank statement API failed, using dummy data:', error.message);
-          bankResults = bankStatements.map((file, index) => ({
-            account_number: `DUMMY_ACC_${index + 1}`,
-            bank_name: 'Sample Bank',
-            balance: Math.floor(Math.random() * 100000) + 50000,
-            monthly_turnover: Math.floor(Math.random() * 50000) + 20000,
-            status: 'processed_with_dummy_data'
-          }));
-          setBankAnalysisResults(bankResults);
+          console.error('Bank statement API failed:', error.message);
+          setBankAnalysisResults([]);
         }
       }
 
@@ -340,19 +351,8 @@ const FormalLoanRequest: React.FC = () => {
         console.log('Payslips processed successfully with two-step analysis');
         setPayslipAnalysisResults(payslipResults);
       } catch (error: any) {
-        console.warn('Payslip processing failed, using dummy data:', error.message);
-        payslipResults = salaryPayslips.map((file, index) => ({
-          employee_name: 'Sample Employee',
-          employer_name: 'Sample Company',
-          basic_salary: Math.floor(Math.random() * 100000) + 50000,
-          gross_salary: Math.floor(Math.random() * 120000) + 60000,
-          net_salary: Math.floor(Math.random() * 80000) + 40000,
-          credit_score: Math.floor(Math.random() * 40) + 60,
-          risk_level: 'Medium',
-          api_processed: false,
-          status: 'processed_with_dummy_data'
-        }));
-        setPayslipAnalysisResults(payslipResults);
+        console.error('Payslip processing failed:', error.message);
+        setPayslipAnalysisResults([]);
       }
 
       // Process call logs using real API
@@ -365,30 +365,16 @@ const FormalLoanRequest: React.FC = () => {
           setCallLogsAnalysisResults(callLogsResults);
           console.log('Call logs processed successfully');
         } catch (error: any) {
-          console.warn('Call logs API failed, using dummy data:', error.message);
-          callLogsResults = callLogs.map((file, index) => ({
-            call_frequency: Math.floor(Math.random() * 100) + 50,
-            call_duration: Math.floor(Math.random() * 5000) + 1000,
-            active_behavior: Math.floor(Math.random() * 10) + 1,
-            stable_contacts_ratio: Math.random() * 0.5 + 0.5,
-            status: 'processed_with_dummy_data'
-          }));
-          setCallLogsAnalysisResults(callLogsResults);
+          console.error('Call logs API failed:', error.message);
+          setCallLogsAnalysisResults([]);
         }
       }
 
-      // Use dummy data for M-Pesa statements (API disabled)
+      // M-Pesa statements processing disabled
       let mpesaResults: any[] = [];
       if (mpesaStatements.length > 0) {
-        console.log('M-Pesa API disabled, using dummy data');
-        mpesaResults = mpesaStatements.map((file, index) => ({
-          total_transactions: Math.floor(Math.random() * 200) + 50,
-          total_inflow: Math.floor(Math.random() * 100000) + 20000,
-          total_outflow: Math.floor(Math.random() * 80000) + 15000,
-          avg_balance: Math.floor(Math.random() * 50000) + 10000,
-          status: 'processed_with_dummy_data'
-        }));
-        setMpesaAnalysisResults(mpesaResults);
+        console.log('M-Pesa API not available');
+        setMpesaAnalysisResults([]);
       }
 
       const results = {
@@ -431,13 +417,8 @@ const FormalLoanRequest: React.FC = () => {
               api_processed: true
             };
           } catch (error: any) {
-            console.warn(`Guarantor ${index + 1} ID analysis failed:`, error.message);
-            return {
-              name: `Guarantor ${index + 1}`,
-              nationality: 'Unknown',
-              idNumber: `DUMMY_ID_${index + 1}`,
-              api_processed: false
-            };
+            console.error(`Guarantor ${index + 1} ID analysis failed:`, error.message);
+            return null;
           }
         })
       );
@@ -469,6 +450,12 @@ const FormalLoanRequest: React.FC = () => {
   };
 
   const onSubmit = async (data: LoanFormData) => {
+    // Clear localStorage when form is completed
+    localStorage.removeItem('activeFormSession');
+    
+    // Mark as completed in progress tracking
+    await markCompleted();
+    
     setIsSubmitting(true);
     try {
       const formData: LoanFormData = {
@@ -964,10 +951,7 @@ const FormalLoanRequest: React.FC = () => {
                   <h3 className="font-semibold text-gray-900 mb-2">Enter Amount Manually</h3>
                   <input
                     type="number"
-                    {...register("amountRequested", {
-                      min: { value: 1000, message: "Minimum loan amount is KSH 1,000" },
-                      max: { value: 5000000, message: "Maximum loan amount is KSH 5,000,000" }
-                    })}
+                    {...register("amountRequested")}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., 100000"
                   />
@@ -1030,15 +1014,7 @@ const FormalLoanRequest: React.FC = () => {
                 </label>
                 <input
                   type="date"
-                  {...register("repaymentDate", {
-                    required: "Repayment date is required",
-                    validate: (value) => {
-                      const selectedDate = new Date(value);
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      return selectedDate > today || "Repayment date must be in the future";
-                    }
-                  })}
+                  {...register("repaymentDate")}
                   min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />

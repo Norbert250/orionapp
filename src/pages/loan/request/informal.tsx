@@ -4,6 +4,7 @@ import { analyzeCallLogs } from "../../../api/callLogsApi";
 import { analyzeIdDocument } from "../../../api/idAnalyzerApi";
 import { analyzeDrugs } from "../../../api/drugsAnalyzeApi";
 import { analyzePrescriptions } from "../../../api/prescriptionsAnalyzeApi";
+import { supabase } from "../../../lib/supabase";
 
 import React, { useState, useEffect } from "react";
 import type { SubmitHandler } from "react-hook-form";
@@ -63,7 +64,7 @@ const InformalLoanRequest: React.FC = () => {
   const [step, setStep] = useState(0);
   const steps = ["Instructions", "Assets", "Documents", "Loan Details"];
   const [loanId] = useState(() => crypto.randomUUID());
-  const { updateProgress, markCompleted, trackActivity } = useFormProgress('informal', 3);
+  const { updateProgress, markCompleted, trackActivity, sessionId } = useFormProgress('informal', 3);
 
   // Track detailed sub-steps
   const trackSubStep = (mainStep: number, subStep: string) => {
@@ -133,12 +134,14 @@ const InformalLoanRequest: React.FC = () => {
     
     // Initial progress tracking
     console.log('📝 Form initialized, tracking progress');
+    console.log('User ID:', user?.id);
     updateProgress(0, 'Instructions - Reading');
   }, [location.state, setValue, updateProgress]);
 
   // Track progress when step changes
   useEffect(() => {
     console.log('🔄 Step changed to:', step, steps[step]);
+    console.log('👤 Current user:', user?.id);
     updateProgress(step, steps[step]);
   }, [step, updateProgress]);
 
@@ -158,56 +161,136 @@ const InformalLoanRequest: React.FC = () => {
     };
   }, [trackActivity]);
 
-  // Mark as abandoned when user closes tab/browser
+  // Periodic abandonment checker
   useEffect(() => {
-    const markAbandoned = async () => {
-      if (user?.id) {
+    const checkForAbandonment = async () => {
+      if (!user?.id) return;
+      
+      try {
+        // Check for sessions that haven't been updated in 3 minutes
+        const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+        
+        const { data: abandonedSessions } = await supabase
+          .from('form_progress')
+          .select('id, time_spent, created_at, last_activity')
+          .eq('status', 'in_progress')
+          .lt('last_activity', threeMinutesAgo);
+          
+        if (abandonedSessions && abandonedSessions.length > 0) {
+          // Update each session with calculated time_spent
+          for (const session of abandonedSessions) {
+            const finalTimeSpent = Math.round(
+              (new Date(session.last_activity).getTime() - new Date(session.created_at).getTime()) / (1000 * 60)
+            );
+            
+            await supabase
+              .from('form_progress')
+              .update({ 
+                status: 'abandoned',
+                time_spent: Math.max(finalTimeSpent, 0)
+              })
+              .eq('id', session.id);
+              
+            console.log(`Session ${session.id} abandoned after ${Math.max(finalTimeSpent, 0)} minutes`);
+          }
+          
+          console.log(`🔍 Marked ${abandonedSessions.length} sessions as abandoned`);
+        }
+      } catch (error) {
+        console.error('Error checking for abandoned sessions:', error);
+      }
+    };
+    
+    // Check every minute
+    const abandonmentInterval = setInterval(checkForAbandonment, 60 * 1000);
+    
+    return () => clearInterval(abandonmentInterval);
+  }, [user?.id]);
+
+
+
+  // Check for abandoned sessions on page load and setup cleanup
+  useEffect(() => {
+    const checkAbandonedSessions = async () => {
+      const stored = localStorage.getItem('activeFormSession');
+      if (stored) {
         try {
-          await supabase
-            .from('form_progress')
-            .update({ 
-              status: 'abandoned',
-              abandoned_at: new Date().toISOString(),
-              last_activity: new Date().toISOString()
-            })
-            .eq('user_id', user.id)
-            .eq('form_type', 'informal')
-            .eq('status', 'in_progress');
-          console.log('✅ Form marked as abandoned');
-        } catch (error) {
-          console.error('❌ Error marking form as abandoned:', error);
+          const { userId, sessionId: oldSessionId, timestamp } = JSON.parse(stored);
+          
+          // If it's a different session or old session (>5 minutes), mark as abandoned
+          const isOldSession = Date.now() - timestamp > 5 * 60 * 1000; // 5 minutes
+          if (oldSessionId !== sessionId || isOldSession) {
+            console.log('🚪 Marking previous session as abandoned:', oldSessionId);
+            await supabase
+              .from('form_progress')
+              .update({ status: 'abandoned' })
+              .eq('user_id', userId)
+              .eq('session_id', oldSessionId)
+              .eq('status', 'in_progress');
+          }
+        } catch (e) {
+          console.error('Error checking abandoned sessions:', e);
+        }
+      }
+      
+      // Store current session with timestamp
+      if (user?.id && sessionId) {
+        const sessionData = {
+          userId: user.id,
+          sessionId: sessionId,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('activeFormSession', JSON.stringify(sessionData));
+        
+        // Update timestamp periodically to show activity
+        const updateActivity = () => {
+          const current = localStorage.getItem('activeFormSession');
+          if (current) {
+            try {
+              const data = JSON.parse(current);
+              if (data.sessionId === sessionId) {
+                data.timestamp = Date.now();
+                localStorage.setItem('activeFormSession', JSON.stringify(data));
+              }
+            } catch (e) {
+              console.error('Error updating activity:', e);
+            }
+          }
+        };
+        
+        // Update activity every 30 seconds
+        const activityInterval = setInterval(updateActivity, 30000);
+        
+        // Cleanup on unmount
+        return () => {
+          clearInterval(activityInterval);
+        };
+      }
+    };
+    
+    checkAbandonedSessions();
+  }, [sessionId, user?.id]);
+
+  // Handle page unload/refresh to mark as abandoned
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Mark session for abandonment check on next load
+      const stored = localStorage.getItem('activeFormSession');
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          data.shouldCheckAbandonment = true;
+          data.lastSeen = Date.now();
+          localStorage.setItem('activeFormSession', JSON.stringify(data));
+        } catch (e) {
+          console.error('Error marking for abandonment check:', e);
         }
       }
     };
 
-    // Handle tab/window close
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        markAbandoned();
-      }
-    };
-
-    const handleBeforeUnload = () => {
-      markAbandoned();
-    };
-
-    const handlePageHide = () => {
-      markAbandoned();
-    };
-
-    // Add all possible event listeners for tab/browser close
-    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('pagehide', handlePageHide);
-    window.addEventListener('unload', handleBeforeUnload);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('pagehide', handlePageHide);
-      window.removeEventListener('unload', handleBeforeUnload);
-    };
-  }, [user?.id]);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   // Process Medical Assessment
   const processMedicalAssessment = async () => {
@@ -305,15 +388,8 @@ const InformalLoanRequest: React.FC = () => {
         }));
         console.log('Using API results for asset valuation');
       } else {
-        // Fallback to dummy data
-        results = assets.map((asset, index) => ({
-          value: Math.floor(Math.random() * 50000) + 10000,
-          description: `Asset ${index + 1}`,
-          category: ['electronics', 'furniture', 'vehicle'][Math.floor(Math.random() * 3)],
-          estimated_value: Math.floor(Math.random() * 50000) + 10000,
-          api_processed: false
-        }));
-        console.log('Using fallback dummy data for asset valuation');
+        console.log('Assets analysis API failed - no results available');
+        results = [];
       }
 
       setAssetResults(results);
@@ -398,15 +474,8 @@ const InformalLoanRequest: React.FC = () => {
           console.log('Bank statements processed successfully with scores');
           setBankAnalysisResults(bankResults);
         } catch (error: any) {
-          console.warn('Bank statement API failed, using dummy data:', error.message);
-          bankResults = bankStatements.map((file, index) => ({
-            account_number: `DUMMY_ACC_${index + 1}`,
-            bank_name: 'Sample Bank',
-            balance: Math.floor(Math.random() * 100000) + 50000,
-            monthly_turnover: Math.floor(Math.random() * 50000) + 20000,
-            status: 'processed_with_dummy_data'
-          }));
-          setBankAnalysisResults(bankResults);
+          console.error('Bank statement API failed:', error.message);
+          setBankAnalysisResults([]);
         }
       }
 
@@ -420,30 +489,16 @@ const InformalLoanRequest: React.FC = () => {
           setCallLogsAnalysisResults(callLogsResults);
           console.log('Call logs processed successfully');
         } catch (error: any) {
-          console.warn('Call logs API failed, using dummy data:', error.message);
-          callLogsResults = callLogs.map((file, index) => ({
-            call_frequency: Math.floor(Math.random() * 100) + 50,
-            call_duration: Math.floor(Math.random() * 5000) + 1000,
-            active_behavior: Math.floor(Math.random() * 10) + 1,
-            stable_contacts_ratio: Math.random() * 0.5 + 0.5,
-            status: 'processed_with_dummy_data'
-          }));
-          setCallLogsAnalysisResults(callLogsResults);
+          console.error('Call logs API failed:', error.message);
+          setCallLogsAnalysisResults([]);
         }
       }
 
-      // Use dummy data for M-Pesa statements (API disabled)
+      // M-Pesa statements processing disabled
       let mpesaResults: any[] = [];
       if (mpesaStatements.length > 0) {
-        console.log('M-Pesa API disabled, using dummy data');
-        mpesaResults = mpesaStatements.map((file, index) => ({
-          total_transactions: Math.floor(Math.random() * 200) + 50,
-          total_inflow: Math.floor(Math.random() * 100000) + 20000,
-          total_outflow: Math.floor(Math.random() * 80000) + 15000,
-          avg_balance: Math.floor(Math.random() * 50000) + 10000,
-          status: 'processed_with_dummy_data'
-        }));
-        setMpesaAnalysisResults(mpesaResults);
+        console.log('M-Pesa API not available');
+        setMpesaAnalysisResults([]);
       }
 
       const results = {
@@ -485,13 +540,8 @@ const InformalLoanRequest: React.FC = () => {
               api_processed: true
             };
           } catch (error: any) {
-            console.warn(`Guarantor ${index + 1} ID analysis failed:`, error.message);
-            return {
-              name: `Guarantor ${index + 1}`,
-              nationality: 'Unknown',
-              idNumber: `DUMMY_ID_${index + 1}`,
-              api_processed: false
-            };
+            console.error(`Guarantor ${index + 1} ID analysis failed:`, error.message);
+            return null;
           }
         })
       );
@@ -511,6 +561,12 @@ const InformalLoanRequest: React.FC = () => {
   };
 
   const onSubmit: SubmitHandler<LoanFormData> = async (data) => {
+    // Clear localStorage when form is completed
+    localStorage.removeItem('activeFormSession');
+    
+    // Mark as completed in progress tracking
+    await markCompleted();
+    
     setIsSubmitting(true);
     try {
       const formData: LoanFormData = {
@@ -541,7 +597,6 @@ const InformalLoanRequest: React.FC = () => {
 
       // Submit to Supabase instead of external API
       const response = await submitLoanToSupabase(formData, user?.id);
-      await markCompleted();
       alert("Loan application submitted successfully!");
       navigate(`/`);
     } catch (error: any) {
@@ -1003,10 +1058,7 @@ const InformalLoanRequest: React.FC = () => {
                   <h3 className="font-semibold text-gray-900 mb-2">Enter Amount Manually</h3>
                   <input
                     type="number"
-                    {...register("amountRequested", {
-                      min: { value: 1000, message: "Minimum loan amount is KSH 1,000" },
-                      max: { value: 1000000, message: "Maximum loan amount is KSH 1,000,000" }
-                    })}
+                    {...register("amountRequested")}
                     onChange={(e) => {
                       register("amountRequested").onChange(e);
                       if (e.target.value) {
@@ -1083,15 +1135,7 @@ const InformalLoanRequest: React.FC = () => {
               </label>
               <input
                 type="date"
-                {...register("repaymentDate", {
-                  required: "Repayment date is required",
-                  validate: (value) => {
-                    const selectedDate = new Date(value);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    return selectedDate > today || "Repayment date must be in the future";
-                  }
-                })}
+                {...register("repaymentDate")}
                 min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />

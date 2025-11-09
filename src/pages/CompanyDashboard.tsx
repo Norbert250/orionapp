@@ -34,21 +34,34 @@ const CompanyDashboard = () => {
   useEffect(() => {
     fetchFormProgress();
     
-    // Set up real-time subscription
-    const subscription = supabase
-      .channel('form_progress_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'form_progress' },
-        () => fetchFormProgress()
+    // Set up real-time subscription with proper channel configuration
+    const channel = supabase
+      .channel('form_progress_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'form_progress'
+        },
+        (payload) => {
+          console.log('📡 Real-time update received:', payload);
+          fetchFormProgress();
+        }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status);
+      });
 
-    // Refresh every 3 seconds for real-time updates
-    const interval = setInterval(fetchFormProgress, 3000);
+    // Also set up a polling fallback every 15 seconds to check for abandonment
+    const pollingInterval = setInterval(() => {
+      console.log('🔄 Polling for updates and checking abandonment...');
+      fetchFormProgress();
+    }, 15000);
 
     return () => {
-      subscription.unsubscribe();
-      clearInterval(interval);
+      channel.unsubscribe();
+      clearInterval(pollingInterval);
     };
   }, []);
 
@@ -56,7 +69,7 @@ const CompanyDashboard = () => {
     try {
       console.log('Fetching form progress data...');
       
-      // Fetch form progress data (keep all records including abandoned)
+      // Fetch form progress data
       const { data: progressData, error } = await supabase
         .from('form_progress')
         .select('*')
@@ -80,16 +93,27 @@ const CompanyDashboard = () => {
       }
 
       // Fetch user profiles
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, email, full_name');
 
+      if (profilesError) {
+        console.error('❌ Error fetching profiles:', profilesError);
+      }
+
       const progressWithUsers = progressData.map(progress => {
         const profile = profiles?.find(p => p.id === progress.user_id);
+        
+        // Calculate time spent - use stored value or calculate from timestamps
+        const timeSpent = progress.time_spent !== null && progress.time_spent !== undefined ? 
+          progress.time_spent : 
+          Math.round((new Date(progress.last_activity).getTime() - new Date(progress.created_at).getTime()) / (1000 * 60));
+        
         return {
           ...progress,
           user_email: profile?.email || 'Unknown',
-          user_name: profile?.full_name || 'Unknown User'
+          user_name: profile?.full_name || 'Unknown User',
+          time_spent: Math.max(timeSpent, 0)
         };
       });
 
@@ -97,45 +121,12 @@ const CompanyDashboard = () => {
       calculateStats(progressWithUsers);
     } catch (error) {
       console.error('Error:', error);
-      // Fallback to mock data
-      const mockData = generateMockData();
-      setFormProgress(mockData);
-      calculateStats(mockData);
+      // Show empty state
+      setFormProgress([]);
+      calculateStats([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const generateMockData = (): FormProgress[] => {
-    const steps = [
-      'Instructions',
-      'Assets Upload',
-      'Documents Upload', 
-      'Loan Details',
-      'Completed'
-    ];
-
-    return Array.from({ length: 15 }, (_, i) => {
-      const currentStep = Math.floor(Math.random() * 5);
-      const status = currentStep === 4 ? 'completed' : 
-                   Math.random() > 0.7 ? 'abandoned' : 'in_progress';
-      
-      return {
-        id: `progress_${i + 1}`,
-        user_id: `user_${i + 1}`,
-        user_email: `user${i + 1}@example.com`,
-        user_name: `User ${i + 1}`,
-        form_type: Math.random() > 0.5 ? 'informal' : 'formal',
-        current_step: currentStep,
-        total_steps: 4,
-        step_name: steps[currentStep],
-        progress_percentage: Math.round((currentStep / 4) * 100),
-        last_activity: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-        status,
-        time_spent: Math.floor(Math.random() * 45) + 5,
-        created_at: new Date(Date.now() - Math.random() * 86400000).toISOString()
-      };
-    });
   };
 
   const calculateStats = (data: FormProgress[]) => {
@@ -145,7 +136,8 @@ const CompanyDashboard = () => {
     const avgCompletionTime = data
       .filter(p => p.status === 'completed')
       .reduce((sum, p) => sum + p.time_spent, 0) / (completedForms || 1);
-    const completionRate = data.length > 0 ? (completedForms / data.length) * 100 : 0;
+    const totalActive = activeUsers + completedForms;
+    const completionRate = totalActive > 0 ? (completedForms / totalActive) * 100 : 0;
 
     setStats({
       activeUsers,
@@ -171,9 +163,11 @@ const CompanyDashboard = () => {
     return 'bg-red-500';
   };
 
-  const filteredProgress = formProgress.filter(p => 
-    filter === 'all' || p.status === filter
-  );
+  const filteredProgress = formProgress.filter(p => {
+    if (filter === 'abandoned') return p.status === 'abandoned';
+    if (filter === 'all') return p.status !== 'abandoned';
+    return p.status === filter;
+  });
 
   if (loading) {
     return (
@@ -257,9 +251,9 @@ const CompanyDashboard = () => {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters and Debug */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-4">
             {['all', 'in_progress', 'completed', 'abandoned'].map((status) => (
               <button
                 key={status}
@@ -273,6 +267,15 @@ const CompanyDashboard = () => {
                 {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-green-600 font-medium">Live Updates (15s polling)</span>
+            </div>
+            <span className="text-sm text-gray-600">
+              Total records: {formProgress.length}
+            </span>
           </div>
         </div>
 
@@ -387,6 +390,7 @@ const CompanyDashboard = () => {
                         )}
                       </div>
                     </td>
+
                   </tr>
                 ))}
               </tbody>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Network Requests</title>
+</head>
+<body>
+    <h1>Debug: Check Browser Network Tab</h1>
+    <p>Open browser DevTools > Network tab and look for:</p>
+    <ul>
+        <li>Any PATCH requests to form_progress</li>
+        <li>Check the "Initiator" column to see what's making the requests</li>
+        <li>Look for service workers, extensions, or background scripts</li>
+    </ul>
+    
+    <script>
+        // Override fetch to log all requests
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            console.log('FETCH REQUEST:', args[0], args[1]);
+            if (args[0].includes('form_progress') && args[1]?.method === 'PATCH') {
+                console.error('FOUND PATCH REQUEST:', args);
+                console.trace('PATCH REQUEST STACK TRACE');
+            }
+            return originalFetch.apply(this, args);
+        };
+        
+        console.log('Fetch override installed. Check console for PATCH requests.');
+    </script>
+</body>
+</html>

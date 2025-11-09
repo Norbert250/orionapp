@@ -12,11 +12,13 @@ CREATE TABLE IF NOT EXISTS form_progress (
   last_activity TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   abandoned_at_step TEXT,
-  abandoned_at TIMESTAMP WITH TIME ZONE,
   phone_number TEXT
 );
 
--- Allow multiple sessions per user (removed unique constraint)
+-- Add unique constraint to prevent duplicate active sessions
+CREATE UNIQUE INDEX IF NOT EXISTS unique_active_form_progress 
+ON form_progress (user_id, form_type) 
+WHERE status = 'in_progress';
 
 -- Simple RLS policy for testing
 ALTER TABLE form_progress ENABLE ROW LEVEL SECURITY;
@@ -25,6 +27,16 @@ ALTER TABLE form_progress ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all for testing" ON form_progress
   FOR ALL USING (auth.role() = 'authenticated');
 
--- Test the setup
-INSERT INTO form_progress (user_id, form_type, current_step, step_name, progress_percentage, status)
-VALUES (auth.uid(), 'informal', 1, 'Assets Upload', 25, 'in_progress');
+-- Clean up existing duplicates first
+DELETE FROM form_progress 
+WHERE id NOT IN (
+  SELECT DISTINCT ON (user_id, form_type) id 
+  FROM form_progress 
+  WHERE status = 'in_progress'
+  ORDER BY user_id, form_type, created_at DESC
+);
+
+-- Refresh schema cache
+NOTIFY pgrst, 'reload schema';
+
+-- Table is ready for use

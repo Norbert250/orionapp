@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,6 +13,11 @@ interface FormProgressData {
 
 export const useFormProgress = (formType: 'informal' | 'formal', totalSteps: number) => {
   const { user } = useAuth();
+  const [sessionId] = useState(() => {
+    const id = crypto.randomUUID();
+    console.log('🆔 New session created:', id);
+    return id;
+  });
 
   const updateProgress = useCallback(async (
     currentStep: number,
@@ -20,83 +25,93 @@ export const useFormProgress = (formType: 'informal' | 'formal', totalSteps: num
     status: 'in_progress' | 'completed' | 'abandoned' = 'in_progress',
     phoneNumber?: string
   ) => {
-    if (!user?.id) return;
+    console.log('🔄 updateProgress called:', { currentStep, stepName, userId: user?.id });
+    
+    if (!user?.id) {
+      console.error('❌ No user ID, cannot update progress');
+      return;
+    }
 
     const progressPercentage = Math.round((currentStep / totalSteps) * 100);
+    const now = new Date().toISOString();
 
     try {
-      // Try to update existing record first
+      // Get existing session to calculate time spent
       const { data: existing } = await supabase
         .from('form_progress')
-        .select('id, created_at')
+        .select('created_at, phone_number')
         .eq('user_id', user.id)
         .eq('form_type', formType)
-        .single();
+        .maybeSingle();
 
-      const progressData = {
-        user_id: user.id,
-        form_type: formType,
-        current_step: currentStep,
-        total_steps: totalSteps,
-        step_name: stepName,
-        progress_percentage: progressPercentage,
-        status,
-        last_activity: new Date().toISOString(),
-        time_spent: existing ? 
-          Math.round((Date.now() - new Date(existing.created_at).getTime()) / 60000) : 0,
-        phone_number: phoneNumber || existing?.phone_number
-      };
+      const timeSpent = existing ? 
+        Math.round((Date.now() - new Date(existing.created_at).getTime()) / 60000) : 0;
 
-      if (existing) {
-        // Update existing record
-        const { error } = await supabase
-          .from('form_progress')
-          .update(progressData)
-          .eq('id', existing.id);
-        if (error) throw error;
+      // Check if this session already exists
+      const { data: existingSession } = await supabase
+        .from('form_progress')
+        .select('id, status')
+        .eq('user_id', user.id)
+        .eq('form_type', formType)
+        .eq('session_id', sessionId)
+        .maybeSingle();
+
+      let error;
+      if (existingSession) {
+        // Update existing session only if it's still in progress
+        if (existingSession.status === 'in_progress') {
+          const { error: updateError } = await supabase
+            .from('form_progress')
+            .update({
+              current_step: currentStep,
+              total_steps: totalSteps,
+              step_name: stepName,
+              progress_percentage: progressPercentage,
+              status,
+              last_activity: now,
+              phone_number: phoneNumber
+            })
+            .eq('id', existingSession.id);
+          error = updateError;
+        }
       } else {
-        // Create new record for new session
-        const { error } = await supabase
+        // Insert new session
+        const { error: insertError } = await supabase
           .from('form_progress')
           .insert({
-            ...progressData,
-            created_at: new Date().toISOString()
+            user_id: user.id,
+            form_type: formType,
+            session_id: sessionId,
+            current_step: currentStep,
+            total_steps: totalSteps,
+            step_name: stepName,
+            progress_percentage: progressPercentage,
+            status,
+            last_activity: now,
+            time_spent: 0,
+            phone_number: phoneNumber,
+            created_at: now
           });
-        if (error) throw error;
+        error = insertError;
       }
       
-      console.log('✅ Progress updated successfully:', { 
-        userId: user.id, 
-        formType, 
-        currentStep, 
-        stepName, 
-        progressPercentage,
-        status 
-      });
+      console.log('📝 Form progress insert result:', { error: error?.message, user_id: user.id, stepName });
+      
+      if (error) {
+        console.error('❌ Insert failed:', error);
+      } else {
+        console.log('✅ Progress inserted successfully');
+      }
+
+      if (error) throw error;
+      
+      console.log('✅ Progress updated:', { currentStep, stepName, progressPercentage });
     } catch (error) {
-      console.error('❌ Error updating form progress:', error);
-      console.error('Error details:', error.message);
-      // Silently fail - progress tracking shouldn't break the form
+      console.error('❌ Error updating progress:', error);
     }
   }, [user?.id, formType, totalSteps]);
 
-  // Send heartbeat every 30 seconds when form is active
-  useEffect(() => {
-    const heartbeat = setInterval(() => {
-      if (user?.id) {
-        supabase
-          .from('form_progress')
-          .update({ last_activity: new Date().toISOString() })
-          .eq('user_id', user.id)
-          .eq('form_type', formType)
-          .eq('status', 'in_progress')
-          .then(() => console.log('Heartbeat sent'))
-          .catch(console.error);
-      }
-    }, 30000);
 
-    return () => clearInterval(heartbeat);
-  }, [user?.id, formType]);
 
   const markCompleted = useCallback(async () => {
     await updateProgress(totalSteps, 'Completed', 'completed');
@@ -108,69 +123,17 @@ export const useFormProgress = (formType: 'informal' | 'formal', totalSteps: num
     try {
       await supabase
         .from('form_progress')
-        .update({ 
-          status: 'abandoned',
-          abandoned_at: new Date().toISOString(),
-          abandoned_at_step: currentStepName || 'Unknown',
-          last_activity: new Date().toISOString()
-        })
+        .update({ status: 'abandoned' })
         .eq('user_id', user.id)
         .eq('form_type', formType)
+        .eq('session_id', sessionId)
         .eq('status', 'in_progress');
     } catch (error) {
       console.error('Error marking form as abandoned:', error);
     }
-  }, [user?.id, formType]);
+  }, [user?.id, formType, sessionId]);
 
-  // Track when user leaves the page
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      // Mark as abandoned when browser closes
-      if (user?.id) {
-        navigator.sendBeacon(
-          `${supabase.supabaseUrl}/rest/v1/form_progress?user_id=eq.${user.id}&form_type=eq.${formType}`,
-          JSON.stringify({ status: 'abandoned' })
-        );
-      }
-    };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && user?.id) {
-        // Get current step name from latest progress
-        supabase
-          .from('form_progress')
-          .select('step_name')
-          .eq('user_id', user.id)
-          .eq('form_type', formType)
-          .eq('status', 'in_progress')
-          .single()
-          .then(({ data }) => {
-            // Mark as abandoned with current step info
-            return supabase
-              .from('form_progress')
-              .update({ 
-                status: 'abandoned',
-                abandoned_at: new Date().toISOString(),
-                abandoned_at_step: data?.step_name || 'Unknown',
-                last_activity: new Date().toISOString() 
-              })
-              .eq('user_id', user.id)
-              .eq('form_type', formType)
-              .eq('status', 'in_progress');
-          })
-          .then(() => console.log('Form marked as abandoned'))
-          .catch(console.error);
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user?.id, formType, supabase.supabaseUrl]);
 
   // Auto-update activity when user interacts with form
   const trackActivity = useCallback(() => {
@@ -190,6 +153,7 @@ export const useFormProgress = (formType: 'informal' | 'formal', totalSteps: num
     updateProgress,
     markCompleted,
     markAbandoned,
-    trackActivity
+    trackActivity,
+    sessionId
   };
 };
